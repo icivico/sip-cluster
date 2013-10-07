@@ -57,6 +57,9 @@ public class ClusterImpl implements Cluster {
 	}
 	
 	private ClusterImpl() {
+	}
+	
+	public void start() {
 		hz = Hazelcast.getHazelcastInstanceByName("jain-sip-ha");
         uuid = hz.getCluster().getLocalMember().getUuid();
         node = new NodeData();

@@ -47,9 +47,11 @@ public class Server {
 	
 	public void init() throws FileNotFoundException, IOException, StackNotInitialized {
 		ep.start();
+		ClusterImpl.getInstance().start();
 	}
 	
 	public void exit() {
+		ClusterImpl.getInstance().stop();
 		ep.stop();
 	}
 	

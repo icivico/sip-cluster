@@ -2,6 +2,7 @@
 *.txt
 *.log
 *.xml
+!pom.xml
 target/
 *.groovy
 

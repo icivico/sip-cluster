@@ -4,7 +4,7 @@
 *.xml
 !pom.xml
 target/
-*.groovy
+/*.groovy
 
 # Eclipse files #
 .classpath

@@ -1,10 +1,10 @@
-*.properties
-*.txt
+/*.properties
+/*.txt
 *.log
-*.xml
+/*.xml
 !pom.xml
-target/
-*.groovy
+/target/
+/*.groovy
 
 # Eclipse files #
 .classpath

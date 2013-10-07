@@ -1,9 +1,9 @@
-*.properties
-*.txt
+/*.properties
+/*.txt
 *.log
-*.xml
+/*.xml
 !pom.xml
-target/
+/target/
 /*.groovy
 
 # Eclipse files #

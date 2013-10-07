@@ -1,0 +1,11 @@
+*.properties
+*.txt
+*.log
+*.xml
+target/
+*.groovy
+
+# Eclipse files #
+.classpath
+.project
+.settings/

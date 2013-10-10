@@ -241,7 +241,7 @@ public class Endpoint implements SipListenerExt {
 		}
 		
 		try {
-			balancer = addressFactory.createAddress("sip:"+config.getProperty(Constants.BALANCER));
+			balancer = addressFactory.createAddress("sip:"+config.getProperty(Constants.FRONTEND));
 			
 		} catch (ParseException e) {
 			logger.error("Creating contact address", e);

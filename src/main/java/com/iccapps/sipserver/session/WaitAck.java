@@ -32,8 +32,6 @@ import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
-import com.iccapps.sipserver.Endpoint;
-
 public class WaitAck extends State {
 	
 	public WaitAck(SessionImpl c) {

@@ -40,6 +40,7 @@ import com.iccapps.sipserver.action.OutboundCall;
 import com.iccapps.sipserver.action.Reject;
 import com.iccapps.sipserver.api.Cluster;
 import com.iccapps.sipserver.api.Session;
+import com.iccapps.sipserver.cluster.ClusterException;
 import com.iccapps.sipserver.cluster.NodeData;
 import com.iccapps.sipserver.session.SessionImpl;
 import com.iccapps.sipserver.session.SessionState;
@@ -79,8 +80,10 @@ public class ClusterImpl implements Cluster {
 	private ClusterImpl() {
 	}
 	
-	public void start() {
+	public void start() throws ClusterException {
 		hz = Hazelcast.getHazelcastInstanceByName("jain-sip-ha");
+		if (hz == null) 
+			throw new ClusterException("No hazelcast cache");
         uuid = hz.getCluster().getLocalMember().getUuid();
         node = new NodeData();
         node.setName(uuid);

@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import com.iccapps.sipserver.api.Cluster;
+import com.iccapps.sipserver.cluster.ClusterException;
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 import com.iccapps.sipserver.exception.StackNotInitialized;
 
@@ -59,15 +60,16 @@ public class Server {
 	}
 	
 	public Server() {
-		Cluster c = ClusterImpl.getInstance();
-		ServiceManager.getInstance().initialize(c);
+		ClusterImpl.getInstance();
 		ep = Endpoint.getInstance();
 		
 	}
 	
-	public void init() throws FileNotFoundException, IOException, StackNotInitialized {
+	public void init() throws FileNotFoundException, IOException, StackNotInitialized, ClusterException {
 		ep.start();
-		ClusterImpl.getInstance().start();
+		Cluster c = ClusterImpl.getInstance();
+		((ClusterImpl)c).start();
+		ServiceManager.getInstance().initialize(c);
 	}
 	
 	public void exit() {
@@ -75,7 +77,7 @@ public class Server {
 		ep.stop();
 	}
 	
-    public static void main( String[] args ) throws FileNotFoundException, IOException, StackNotInitialized {
+    public static void main( String[] args ) throws FileNotFoundException, IOException, StackNotInitialized, ClusterException {
     	boolean daemon = false;
 		
 		if (args.length > 0 && args[0].equals("-d")) {

@@ -200,8 +200,6 @@ public class Endpoint implements SipListenerExt {
 		
 		String port = config.getProperty(Constants.JAIN_SIP_PORT, "5080");
 		String ip = config.getProperty(Constants.JAIN_SIP_ADDRESS, "0.0.0.0");
-		//Cache.myip = ip;
-		//Cache.myport = port;
 		
 		try {
 			udp = sipStack.createListeningPoint(ip, Integer.parseInt(port), "udp");

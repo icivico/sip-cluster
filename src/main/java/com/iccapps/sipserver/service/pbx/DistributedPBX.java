@@ -27,9 +27,6 @@ public class DistributedPBX implements Service, Controller {
 	@Override
 	public void initialize(Cluster c) {
 		cluster = c;
-		registrations = cluster.createDistributedMap("pbx.registrations");
-		bridges = cluster.createDistributedList("pbx.bridges");
-		bridgesLock = cluster.createDistributedLock("pbx.bridgesLock");
 	}
 	
 	

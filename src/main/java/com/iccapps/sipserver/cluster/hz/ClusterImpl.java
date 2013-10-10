@@ -215,12 +215,6 @@ public class ClusterImpl implements Cluster {
 		// update channel
 		node.getChannels().put(chan.getDialogId(), chan.getData());
 		nodes.put(uuid, node);
-		
-		int i =0;
-		for (SessionState s : node.getChannels().values()) {
-		    System.out.println("Chan entry " + i +": " + s.getDialogId());
-		    i++;
-		}
 	}
 	
 	public void reportNodes() {

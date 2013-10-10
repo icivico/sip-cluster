@@ -7,6 +7,8 @@ import java.util.concurrent.locks.Lock;
 
 import org.apache.log4j.Logger;
 
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import com.iccapps.sipserver.api.Cluster;
 import com.iccapps.sipserver.api.Controller;
 import com.iccapps.sipserver.api.Service;
@@ -27,6 +29,10 @@ public class DistributedPBX implements Service, Controller {
 	@Override
 	public void initialize(Cluster c) {
 		cluster = c;
+		HazelcastInstance hz = Hazelcast.getHazelcastInstanceByName("jain-sip-ha");
+		registrations = hz.getMap("pbx.registrar");
+		bridges = hz.getList("pbx.bridges");
+		bridgesLock = hz.getLock("pbx.bridgesLock");
 	}
 	
 	

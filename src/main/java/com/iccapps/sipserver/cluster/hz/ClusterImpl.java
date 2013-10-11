@@ -265,6 +265,8 @@ public class ClusterImpl implements Cluster {
 	
 	private boolean recover(SessionState chan) {
 		
+		logger.info("Recovering session " + chan.getDialogId());
+		
 		boolean res = false;
 		
 		try {

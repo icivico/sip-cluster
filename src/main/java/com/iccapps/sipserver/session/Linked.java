@@ -112,8 +112,8 @@ public class Linked extends State {
 		try {
 			// hangup with normal code
 			Request request = d.createRequest(Request.BYE);
-			ContactHeader contactHeader = headerFactory.createContactHeader(contact);
-			request.addHeader(contactHeader);
+			//ContactHeader contactHeader = headerFactory.createContactHeader(contact);
+			//request.addHeader(contactHeader);
 	        ClientTransaction c = provider.getNewClientTransaction(request);
 	        
 			chan.setState(new Disconnecting(chan));
@@ -163,6 +163,7 @@ public class Linked extends State {
 	public void options() {
 		
 		Dialog d = stack.getDialog(chan.getDialogId());
+		log.debug("Send OPTIONS to " + d.getRemoteParty());
 		try {
 			// hangup with normal code
 			Request request = d.createRequest(Request.OPTIONS);

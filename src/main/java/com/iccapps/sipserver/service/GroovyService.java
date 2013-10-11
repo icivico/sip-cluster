@@ -60,6 +60,11 @@ public class GroovyService implements Service {
 			e.printStackTrace();
 		}
 	}
+	
+	@Override
+	public void destroy() {
+		
+	}
 
 	@Override
 	public void start(Session s) {

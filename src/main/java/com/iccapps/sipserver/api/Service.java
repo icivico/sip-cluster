@@ -24,6 +24,7 @@ package com.iccapps.sipserver.api;
 public interface Service {
 	
 	public void initialize(Cluster c);
+	public void destroy();
 	
 	public void start(Session s);
 	public void stop(Session s);

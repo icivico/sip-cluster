@@ -91,6 +91,11 @@ public class DistributedPBX implements Service, Controller {
 			cluster.doReject(dialogId, Session.REJECT_CODE_NOT_FOUND);
 		}
 	}
+	
+	@Override
+	public void destroy() {
+		
+	}
 
 	@Override
 	public void updateMedia(Session chan) {
@@ -131,14 +136,10 @@ public class DistributedPBX implements Service, Controller {
 					bridges.remove(idx);
 					bridges.add(b);
 					logger.debug("Updated bridge " + b);
+					cluster.doAnswer(b.getOriginationLeg(), chan.getRemoteSDP());
 				}
 			} finally {
 				bridgesLock.unlock();
-			}
-			if (b != null) {
-				Session orig = cluster.getSession(b.getOriginationLeg());
-				if (orig != null)
-					cluster.doAnswer(orig.getDialogId(), chan.getRemoteSDP());
 			}
 		}
 	}
@@ -155,8 +156,7 @@ public class DistributedPBX implements Service, Controller {
 						b.getDestinationLeg().equals(chan.getDialogId())) {
 					String otherId = b.getOriginationLeg().equals(chan.getDialogId())?b.getDestinationLeg():b.getOriginationLeg();
 					bridges.remove(b);
-					Session other = cluster.getSession(otherId);
-					cluster.doHangup(other.getDialogId());
+					cluster.doHangup(otherId);
 					break;
 				}
 			}

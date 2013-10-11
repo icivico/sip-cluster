@@ -49,6 +49,12 @@ public class TestService implements Service, Controller {
 	}
 	
 	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
 	public void start(Session chan) {
 		chan.registerListener(this);
 
@@ -56,7 +62,7 @@ public class TestService implements Service, Controller {
 
 	@Override
 	public void stop(Session chan) {
-		
+		chan.registerListener(null);
 	}
 
 	@Override

@@ -29,7 +29,9 @@ public class MemberObserver implements MembershipListener {
 
 	private static Logger logger = Logger.getLogger(MemberObserver.class);
 	
-	public MemberObserver() {}
+	public MemberObserver() {
+		logger.info("Member observer created");
+	}
 	
 	@Override
 	public void memberAdded(MembershipEvent arg0) {

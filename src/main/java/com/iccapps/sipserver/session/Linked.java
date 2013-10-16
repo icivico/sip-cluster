@@ -163,7 +163,7 @@ public class Linked extends State {
 	public void options() {
 		
 		Dialog d = stack.getDialog(chan.getDialogId());
-		log.debug("Send OPTIONS to " + d.getRemoteParty());
+		//log.debug("Send OPTIONS to " + d.getRemoteParty());
 		try {
 			// hangup with normal code
 			Request request = d.createRequest(Request.OPTIONS);

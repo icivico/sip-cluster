@@ -267,7 +267,7 @@ public class Endpoint implements SipListenerExt {
 			// process out of dialog action
 			if (a instanceof OutboundCall) {
 				OutboundCall oc = (OutboundCall)a;
-				initiateCall(oc.getFromUri(), oc.getToUri(), oc.getSdp(), oc.getReference());
+				initiateSession(oc.getFromUri(), oc.getToUri(), oc.getSdp(), oc.getReference());
 			}
 			
 		} else if (channels.containsKey(a.getDialogId())) {
@@ -462,7 +462,7 @@ public class Endpoint implements SipListenerExt {
 
 	}
 
-	private void initiateCall(String fromuri, String touri, String sdp, String reference) {
+	private void initiateSession(String fromuri, String touri, String sdp, String reference) {
 		try {
 			Address fromNameAddress = addressFactory.createAddress(fromuri);
 			FromHeader fromHeader = headerFactory.createFromHeader(fromNameAddress, ""+rnd.nextLong());

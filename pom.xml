@@ -90,6 +90,11 @@
     	<version>3.0.2</version>
     </dependency>
     <dependency>
+	    <groupId>org.mobicents.media.client</groupId>
+	    <artifactId>jsr-309-driver</artifactId>
+	    <version>3.0.0.Final</version>
+	</dependency>
+    <dependency>
     	<groupId>org.mobicents.tools</groupId>
     	<artifactId>sip-balancer-jar</artifactId>
     	<version>1.6.0.FINAL</version>

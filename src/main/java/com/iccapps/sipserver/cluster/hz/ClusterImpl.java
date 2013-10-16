@@ -100,37 +100,55 @@ public class ClusterImpl implements Cluster {
         thActionDispatcher = new Thread(new Runnable() {
 			@Override
 			public void run() {
+				int tsleep;
+				Action action;
 				while(!finished) {
+					action = null;
+					tsleep = 0;
+					// acquire lock
 					actionsLock.lock();
 					try {
-						Action a = actionq.peek();
-						if (a != null) {
+						action = actionq.peek();
+						if (action != null) {
 							// check dialogId
-							String dialogId = a.getDialogId();
+							String dialogId = action.getDialogId();
 							if (dialogId == null) {
-								actionq.remove(a);
-								Endpoint.getInstance().dispatch(a);
+								actionq.remove(action);
+								// no owner, we process action outside the lock
 								
 							} else if (node.getChannels().containsKey(dialogId)) {
-								actionq.remove(a);
-								Endpoint.getInstance().dispatch(a);
+								actionq.remove(action);
+								// we are owner, process action outside the lock
 								
 							} else {
-								// do nothing, we let other node to consume
-								Thread.sleep(200);
+								// do nothing and let another node to consume
+								tsleep = 200;
 							}
 								
 						} else {
-							// do nothing, we let other node to consume
-							Thread.sleep(100);
+							// no commands, sleep for a while
+							tsleep = 100;
 						}
-						
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-						break;
 						
 					} finally {
 						actionsLock.unlock();
+					}
+					
+					// dispatch action if we got one
+					if (action != null) {
+						Endpoint.getInstance().dispatch(action);
+						continue;
+					}
+					
+					// sleep if requested
+					if (tsleep > 0) {
+						try {
+							Thread.sleep(tsleep);
+							
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+							break;
+						}
 					}
 				}
 			}

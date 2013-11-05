@@ -27,7 +27,6 @@ import javax.sip.Transaction;
 
 import org.apache.log4j.Logger;
 
-import com.iccapps.sipserver.Endpoint;
 import com.iccapps.sipserver.action.Action;
 import com.iccapps.sipserver.action.Answer;
 import com.iccapps.sipserver.action.Hangup;
@@ -36,6 +35,7 @@ import com.iccapps.sipserver.action.UpdateAck;
 import com.iccapps.sipserver.api.Controller;
 import com.iccapps.sipserver.api.Session;
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
+import com.iccapps.sipserver.sip.Endpoint;
 
 public class SessionImpl implements Session {
 	
@@ -45,6 +45,7 @@ public class SessionImpl implements Session {
 	
 	private Controller controller;
 	private State state;
+	private Endpoint ep;
 	
 	private Transaction transaction = null;
 	private TimerTask keepaliveTask;
@@ -53,6 +54,7 @@ public class SessionImpl implements Session {
 		data = new SessionState();
 		state = new Initial(this);
 		data.setState(state.getClass().getName());
+		ep = ClusterImpl.getInstance().getSipEndpoint();
 	}
 	
 	public SessionImpl(SessionState s) throws IllegalArgumentException, SecurityException, 
@@ -66,7 +68,7 @@ public class SessionImpl implements Session {
 		controller = c;
 	}
 	
-	public void update() {
+	public void replicate() {
 		ClusterImpl.getInstance().update(this);
 	}
 	
@@ -129,7 +131,7 @@ public class SessionImpl implements Session {
 				
 			}
 		};
-		Endpoint.getInstance().getTimer().schedule(keepaliveTask, 5000, 5000);
+		ep.getTimer().schedule(keepaliveTask, 5000, 5000);
 	}
 	
 	public void updateAck() {
@@ -151,7 +153,7 @@ public class SessionImpl implements Session {
 				
 			}
 		};
-		Endpoint.getInstance().getTimer().schedule(keepaliveTask, 5000, 5000);
+		ep.getTimer().schedule(keepaliveTask, 5000, 5000);
 		
 		if (controller != null)
 			controller.connected(this);

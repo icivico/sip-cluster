@@ -53,7 +53,10 @@ public class ServiceWithMedia implements Service {
 	protected MsControlFactory msControlFactory;
 	private Map<String, Controller> calls = new HashMap<String, Controller>();
 	
-	public ServiceWithMedia(Properties config) {}
+	public ServiceWithMedia() {}
+	
+	@Override
+	public void configure(Properties config) {}
 	
 	@Override
 	public void initialize(Cluster c) {

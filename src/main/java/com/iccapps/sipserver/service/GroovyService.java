@@ -36,9 +36,10 @@ public class GroovyService implements Service {
 	
 	private Service service;
 
-	public GroovyService(Properties p) {
-		
-	}
+	public GroovyService() { } 
+	
+	@Override
+	public void configure(Properties p) { }
 	
 	@Override
 	public void initialize(Cluster c) {

@@ -37,44 +37,16 @@ import com.iccapps.sipserver.exception.StackNotInitialized;
 public class Server {
 
 	private static Logger logger = Logger.getLogger(Server.class);
-	private static Properties config;
-	
-	private Endpoint ep;
-	
-	static {
-		config = new Properties();
-		try {
-			config.load(new FileInputStream(new File("server.properties")));
-			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		PropertyConfigurator.configure("log4j.properties");
-	}
-	
-	public static Properties getConfig() {
-		return config;
-	}
 	
 	public Server() {
-		ClusterImpl.getInstance();
-		ep = Endpoint.getInstance();
-		
 	}
 	
 	public void init() throws FileNotFoundException, IOException, StackNotInitialized, ClusterException {
-		ep.start();
-		Cluster c = ClusterImpl.getInstance();
-		((ClusterImpl)c).start();
-		ServiceManager.getInstance().initialize(c);
+		ClusterImpl.getInstance().start();
 	}
 	
 	public void exit() {
 		ClusterImpl.getInstance().stop();
-		ep.stop();
 	}
 	
     public static void main( String[] args ) throws FileNotFoundException, IOException, StackNotInitialized, ClusterException {
@@ -94,7 +66,7 @@ public class Server {
 				int c = 0;
 				while ( (c = System.in.read()) != 'q') {
 					if (c == 'd') ClusterImpl.getInstance().reportNodes();
-					else if (c == 's') ServiceManager.getInstance().report();
+					else if (c == 's') ClusterImpl.getInstance().getService().report();
 					
 					Thread.sleep(200);
 				}

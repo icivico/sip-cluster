@@ -18,7 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with sip-cluster. If not, see <http://www.gnu.org/licenses/>.*/
 
-package com.iccapps.sipserver;
+package com.iccapps.sipserver.api;
 
 public abstract class Constants {
 	
@@ -26,6 +26,7 @@ public abstract class Constants {
 	public static final String JAIN_SIP_PATHNAME = "jain-sip.pathName";
 	public static final String JAIN_SIP_ADDRESS = "jain-sip.address";
 	public static final String JAIN_SIP_PORT = "jain-sip.port";
+	public static final String JAIN_SIP_CONFIG_FILE = "jain-sip.configFile";
 	
 	public static final String SERVICE_CLASS_NAME = "service.className";
 	

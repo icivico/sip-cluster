@@ -40,8 +40,10 @@ public class TestService implements Service, Controller {
 	private Timer timer = new Timer();
 	private Cluster cluster;
 	
-	public TestService(Properties config) {
-	}
+	public TestService() { }
+	
+	@Override
+	public void configure(Properties config) { }
 	
 	@Override
 	public void initialize(Cluster c) {

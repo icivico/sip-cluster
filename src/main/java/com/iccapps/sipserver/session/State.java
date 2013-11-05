@@ -35,7 +35,8 @@ import javax.sip.message.Response;
 import org.apache.log4j.Logger;
 import org.mobicents.ha.javax.sip.ClusteredSipStack;
 
-import com.iccapps.sipserver.Endpoint;
+import com.iccapps.sipserver.cluster.hz.ClusterImpl;
+import com.iccapps.sipserver.sip.Endpoint;
 
 public abstract class State {
 	protected Logger log = Logger.getLogger(State.class);
@@ -53,7 +54,7 @@ public abstract class State {
 		chan = c;
 		log.debug("State transition to " + this.getClass().getSimpleName() + " - " + chan.getDialogId());
 		
-		Endpoint ep = Endpoint.getInstance();
+		Endpoint ep = ClusterImpl.getInstance().getSipEndpoint();
 		msgFactory = ep.getMessageFactory();
 		headerFactory = ep.getHeaderFactory();
 		stack = (ClusteredSipStack)ep.getSipStack();

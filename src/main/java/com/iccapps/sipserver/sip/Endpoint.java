@@ -18,7 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with sip-cluster. If not, see <http://www.gnu.org/licenses/>.*/
 
-package com.iccapps.sipserver;
+package com.iccapps.sipserver.sip;
 
 import gov.nist.javax.sip.DialogTimeoutEvent;
 import gov.nist.javax.sip.SipListenerExt;
@@ -79,6 +79,7 @@ import org.apache.log4j.Logger;
 
 import com.iccapps.sipserver.action.Action;
 import com.iccapps.sipserver.action.OutboundCall;
+import com.iccapps.sipserver.api.Constants;
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 import com.iccapps.sipserver.exception.StackNotInitialized;
 import com.iccapps.sipserver.session.SessionImpl;
@@ -86,8 +87,15 @@ import com.iccapps.sipserver.session.SessionImpl;
 public class Endpoint implements SipListenerExt {
 	
 	private static Logger logger = Logger.getLogger(Endpoint.class);
-	private static Endpoint instance;
 	
+	// Configuration
+	private String pathName;
+	private String host;
+	private String port;
+	private String balancerAddressStr;
+	private String jsipConfigFile;
+	
+	private ClusterImpl cluster;
 	private SipStack sipStack;
 	private SipFactory sipFactory;
 	protected AddressFactory addressFactory;
@@ -100,7 +108,7 @@ public class Endpoint implements SipListenerExt {
 	protected Address contact;
 	protected Address balancer;
 	public List<String> userAgent = new ArrayList<String>();
-	private List<String> server = new ArrayList<String>();
+	private List<String> serverDescription = new ArrayList<String>();
 	
 	private HashMap<String, SessionImpl> channels = new HashMap<String, SessionImpl>();
 	private HashMap<String, SessionImpl> outbounds = new HashMap<String, SessionImpl>();
@@ -161,33 +169,31 @@ public class Endpoint implements SipListenerExt {
 			}
 		}
 	}
-
-	public synchronized static Endpoint getInstance() {
-		if (instance == null)
-			instance = new Endpoint();
-		
-		return instance;
-	}
 	
-	private Endpoint() {
+	public Endpoint(Properties config, ClusterImpl c) {
 		userAgent.add("SIP Server HA Agent (1.0-SNAPSHOT)");
-		server.add("SIP HA Server");
+		serverDescription.add("SIP HA Server");
+		
+		cluster = c;
+		pathName = config.getProperty(Constants.JAIN_SIP_PATHNAME, "org.mobicents.ha");
+		port = config.getProperty(Constants.JAIN_SIP_PORT, "5080");
+		host = config.getProperty(Constants.JAIN_SIP_ADDRESS, "0.0.0.0");
+		balancerAddressStr = "sip:"+config.getProperty(Constants.FRONTEND);
+		jsipConfigFile = config.getProperty(Constants.JAIN_SIP_CONFIG_FILE, "jsip.properties");
 	}
 	
 	public void start() throws FileNotFoundException, IOException, StackNotInitialized {
 		
 		logger.info("Starting sip endpoint");
 		
-		Properties config = Server.getConfig();
-		
 		sipFactory = SipFactory.getInstance();
-		sipFactory.setPathName(config.getProperty(Constants.JAIN_SIP_PATHNAME, "gov.nist"));
+		sipFactory.setPathName(pathName);
 		
-		Properties properties = new Properties();
-		properties.load(new FileInputStream(new File("jsip.properties")));
+		Properties stackConfiguration = new Properties();
+		stackConfiguration.load(new FileInputStream(new File(jsipConfigFile)));
 		
 		try {
-			sipStack = sipFactory.createSipStack(properties);
+			sipStack = sipFactory.createSipStack(stackConfiguration);
 			headerFactory = sipFactory.createHeaderFactory();
 			addressFactory = sipFactory.createAddressFactory();
 			messageFactory = sipFactory.createMessageFactory();
@@ -197,12 +203,8 @@ public class Endpoint implements SipListenerExt {
 			throw new StackNotInitialized("Stack not created", e);
 		}
 		
-		
-		String port = config.getProperty(Constants.JAIN_SIP_PORT, "5080");
-		String ip = config.getProperty(Constants.JAIN_SIP_ADDRESS, "0.0.0.0");
-		
 		try {
-			udp = sipStack.createListeningPoint(ip, Integer.parseInt(port), "udp");
+			udp = sipStack.createListeningPoint(host, Integer.parseInt(port), "udp");
 			sipProvider = sipStack.createSipProvider(udp);
 			sipProvider.addSipListener(this);
 			sipStack.start();
@@ -241,14 +243,16 @@ public class Endpoint implements SipListenerExt {
 		}
 		
 		try {
-			balancer = addressFactory.createAddress("sip:"+config.getProperty(Constants.FRONTEND));
+			balancer = addressFactory.createAddress(balancerAddressStr);
 			
 		} catch (ParseException e) {
 			logger.error("Creating contact address", e);
+			balancer = null;
 			throw new StackNotInitialized("Contact address not created", e);
 		}
 		
-		timer.schedule(new BalancerKeepalive(), 1000);
+		if (balancer != null)
+			timer.schedule(new BalancerKeepalive(), 1000);
 	}
 	
 	public void stop() {
@@ -294,8 +298,8 @@ public class Endpoint implements SipListenerExt {
 			c.fireTerminated();
 			channels.remove(c.getDialogId());
 			logger.debug("Channel removed: " + c.getDialogId());
-			ClusterImpl.getInstance().unregister(c);
-			ServiceManager.getInstance().stop(c);
+			cluster.unregister(c);
+			cluster.getService().stop(c);
 			c.end();
 		}
 	}
@@ -348,7 +352,7 @@ public class Endpoint implements SipListenerExt {
 					String user = uri.getUser();
 					ContactHeader ct = (ContactHeader)req.getHeader(ContactHeader.NAME);
 					String contactUri = ct.getAddress().getURI().toString();
-					int expires = ServiceManager.getInstance().registration(user, contactUri);
+					int expires = cluster.getService().registration(user, contactUri);
 					
 					Response res = null;
 					if (expires > 0) {
@@ -377,12 +381,12 @@ public class Endpoint implements SipListenerExt {
 					// create distributed queue for commands and add channelid to this node registry
 					ClusterImpl.getInstance().register(chan);
 					// register on Service
-					ServiceManager.getInstance().start(chan);
+					cluster.getService().start(chan);
 					// start call and process request
 					chan.init();
 					chan.fireIncoming();
 					
-					chan.update();
+					chan.replicate();
 				}	
 			}
 		} catch (ParseException e) {
@@ -414,8 +418,8 @@ public class Endpoint implements SipListenerExt {
 					SessionImpl chan = outbounds.remove(callid);
 					chan.setDialogId(d.getDialogId());
 					channels.put(chan.getDialogId(), chan);
-					ClusterImpl.getInstance().register(chan);
-					ServiceManager.getInstance().start(chan);
+					cluster.register(chan);
+					cluster.getService().start(chan);
 					chan.getState().processResponse(res, ct);
 					
 				} else {

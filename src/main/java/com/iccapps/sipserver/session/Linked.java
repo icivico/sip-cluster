@@ -29,7 +29,6 @@ import javax.sip.ServerTransaction;
 import javax.sip.SipException;
 import javax.sip.header.ContactHeader;
 import javax.sip.header.ContentTypeHeader;
-import javax.sip.header.Header;
 import javax.sip.header.UserAgentHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -48,7 +47,7 @@ public class Linked extends State {
 				Response res = msgFactory.createResponse(Response.OK, request);
 				chan.setState(new Disconnecting(chan));
 				st.sendResponse(res);
-				chan.update();
+				chan.replicate();
 				chan.fireDisconnected();
 				
 			} catch (ParseException e) {
@@ -120,7 +119,7 @@ public class Linked extends State {
 			// send request
 	        d.sendRequest(c);
 	        
-	        chan.update();
+	        chan.replicate();
 	        
 		} catch (SipException e) {
 			e.printStackTrace();

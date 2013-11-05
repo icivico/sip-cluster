@@ -47,7 +47,7 @@ public class WaitAck extends State {
 			if ( !chan.isCanceled() ) {
 				// transition to linked state
 				chan.setState(new Linked(chan));
-				chan.update();
+				chan.replicate();
 				
 				chan.fireConnected();
 			}
@@ -55,7 +55,7 @@ public class WaitAck extends State {
 		} else if (request.getMethod().equals(Request.CANCEL)) {
 			
 			chan.setCanceled(true);
-	        chan.update();
+	        chan.replicate();
 	        
 			// cancel invite
 			try {

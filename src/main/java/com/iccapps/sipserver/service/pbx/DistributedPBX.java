@@ -40,11 +40,12 @@ public class DistributedPBX implements Service, Controller {
 	private Map<String, Object> registrations;
 	private List<Object> bridges;
 	private Lock bridgesLock;
-	//private Timer timer = new Timer();
 	private Cluster cluster;
 	
-
-	public DistributedPBX(Properties config) {}
+	@Override
+	public void configure(Properties config) {
+	
+	}
 	
 	@Override
 	public void initialize(Cluster c) {

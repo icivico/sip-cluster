@@ -20,8 +20,13 @@
 
 package com.iccapps.sipserver.cluster.hz;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.log4j.Logger;
@@ -31,26 +36,39 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.IQueue;
 import com.hazelcast.core.Member;
-import com.iccapps.sipserver.Endpoint;
-import com.iccapps.sipserver.ServiceManager;
 import com.iccapps.sipserver.action.Action;
 import com.iccapps.sipserver.action.Answer;
 import com.iccapps.sipserver.action.Hangup;
 import com.iccapps.sipserver.action.OutboundCall;
 import com.iccapps.sipserver.action.Reject;
 import com.iccapps.sipserver.api.Cluster;
+import com.iccapps.sipserver.api.Constants;
+import com.iccapps.sipserver.api.Service;
 import com.iccapps.sipserver.api.Session;
 import com.iccapps.sipserver.cluster.ClusterException;
 import com.iccapps.sipserver.cluster.NodeData;
+import com.iccapps.sipserver.exception.StackNotInitialized;
 import com.iccapps.sipserver.session.SessionImpl;
 import com.iccapps.sipserver.session.SessionState;
+import com.iccapps.sipserver.sip.Endpoint;
 
 public class ClusterImpl implements Cluster {
 	
 	private static Logger logger = Logger.getLogger(ClusterImpl.class);
 	
 	private static ClusterImpl instance;
+	private static Properties config;
 	
+	protected Endpoint sipEndpoint;
+	public Endpoint getSipEndpoint() {
+		return sipEndpoint;
+	}
+
+	protected Service service;
+	public Service getService() {
+		return service;
+	}
+
 	protected HazelcastInstance hz;
 	private String uuid;
 	private NodeData node;
@@ -69,6 +87,18 @@ public class ClusterImpl implements Cluster {
 	protected Lock failoverLock;
 	protected Lock actionsLock;
 	
+	static {
+		config = new Properties();
+		try {
+			config.load(new FileInputStream(new File("cluster.properties")));
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	
 	public static ClusterImpl getInstance() {
 		if (instance == null)
@@ -77,10 +107,54 @@ public class ClusterImpl implements Cluster {
 		return instance;
 	}
 	
-	private ClusterImpl() {
+	private ClusterImpl() { }
+	
+	private Endpoint createSipEndpoint() {
+		return new Endpoint(config, this);
+	}
+	
+	private Service createServiceInstance() throws ClusterException {
+		Service srv = null;
+		String name = config.getProperty(Constants.SERVICE_CLASS_NAME);
+		try {
+			srv = (Service) Class.forName(name).newInstance();
+			srv.configure(config);
+		
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new ClusterException("Could not instantiate Service");
+		}
+		
+		return srv;
 	}
 	
 	public void start() throws ClusterException {
+		sipEndpoint = createSipEndpoint(); 
+		service = createServiceInstance();
+		
+		startSipEndpoint();
+		startCluster();
+		initializeService();
+	}
+	
+	private void startSipEndpoint() throws ClusterException {
+		try {
+			sipEndpoint.start();
+			
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+			throw new ClusterException("Endpoint not initialized");
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			throw new ClusterException("Endpoint not initialized");
+		} catch (StackNotInitialized e1) {
+			e1.printStackTrace();
+			throw new ClusterException("Endpoint not initialized");
+		}
+	}
+	
+	private void startCluster() throws ClusterException {
+		// start cluster
 		hz = Hazelcast.getHazelcastInstanceByName("jain-sip-ha");
 		if (hz == null) 
 			throw new ClusterException("No hazelcast cache");
@@ -136,7 +210,7 @@ public class ClusterImpl implements Cluster {
 					
 					// dispatch action if we got one
 					if (action != null) {
-						Endpoint.getInstance().dispatch(action);
+						sipEndpoint.dispatch(action);
 						continue;
 					}
 					
@@ -182,40 +256,55 @@ public class ClusterImpl implements Cluster {
         thChannelHandover.start();
 	}
 	
+	private void initializeService() {
+		service.initialize(this);
+	}
+	
 	public void stop() {
+		stopCluster();
+		stopSipEndpoint();
+		destroyService();
+	}
+
+	private void stopCluster() {
 		finished = true;
 		try {
-			thChannelHandover.join(500);
-			thChannelHandover = null;
+			if (thChannelHandover == null) {
+				thChannelHandover.join(500);
+				thChannelHandover = null;
+			}
 			
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		try {
-			thActionDispatcher.join(500);
-			thActionDispatcher = null;
-			
+			if (thActionDispatcher == null) {
+				thActionDispatcher.join(500);
+				thActionDispatcher = null;
+			}
+		
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
-
+	
+	private void stopSipEndpoint() {
+		if (sipEndpoint != null) {
+			sipEndpoint.stop();
+			sipEndpoint = null;
+		}
+	}
+	
+	private void destroyService() {
+		if (service == null) {
+			service.destroy();
+			service = null;
+		}
+	}
+	
 	public void finalize() {
-		finished = true;
-		try {
-			if (thActionDispatcher != null)
-				thActionDispatcher.join(500);
-			
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		try {
-			if (thChannelHandover != null)
-				thChannelHandover.join(500);
-			
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		if (!finished)
+			stop();
 	}
 	
 	public void register(SessionImpl chan) {
@@ -289,8 +378,8 @@ public class ClusterImpl implements Cluster {
 		
 		try {
 			SessionImpl c = new SessionImpl(chan);
-			Endpoint.getInstance().recover(c);
-			ServiceManager.getInstance().handover(c);
+			sipEndpoint.recover(c);
+			service.handover(c);
 			node.getChannels().put(c.getDialogId(), chan);
 			nodes.put(uuid, node);
 			c.recovered();
@@ -325,22 +414,22 @@ public class ClusterImpl implements Cluster {
 
 	@Override
 	public Session getSession(String sessionId) {
-		return Endpoint.getInstance().getSession(sessionId);
+		return sipEndpoint.getSession(sessionId);
 		
 	}
 	
 	@Override
 	public void doAnswer(String dialogId, String sdp) {
-		ClusterImpl.getInstance().queueAction(new Answer(dialogId, sdp));
+		queueAction(new Answer(dialogId, sdp));
 	}
 	
 	@Override
 	public void doHangup(String dialogId) {
-		ClusterImpl.getInstance().queueAction(new Hangup(dialogId));
+		queueAction(new Hangup(dialogId));
 	}
 	
 	@Override
 	public void doReject(String dialogId, int code) {
-		ClusterImpl.getInstance().queueAction(new Reject(dialogId, code));
+		queueAction(new Reject(dialogId, code));
 	}
 }

@@ -32,13 +32,10 @@ import javax.sip.TransactionUnavailableException;
 import javax.sip.header.CSeqHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.ToHeader;
-import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.mobicents.ha.javax.sip.ClusteredSipStack;
-
-import com.iccapps.sipserver.Endpoint;
 
 public class Initial extends State {
 	
@@ -48,7 +45,6 @@ public class Initial extends State {
 
 	@Override
 	public void processRequest(Request request, ServerTransaction st) {
-		MessageFactory msgFactory = Endpoint.getInstance().getMessageFactory();
 		
 		if ( request.getMethod().equals(Request.INVITE) ) {
 			chan.setTransaction(st);
@@ -108,9 +104,9 @@ public class Initial extends State {
 				
 				sendAck(response);
 				
-				chan.update();
+				chan.replicate();
 				
-				// conected event
+				// connected event
 				chan.fireConnected();
 				
 			} else if ( response.getStatusCode() == Response.FORBIDDEN ) {

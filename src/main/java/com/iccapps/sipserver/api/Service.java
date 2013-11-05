@@ -20,9 +20,12 @@
 
 package com.iccapps.sipserver.api;
 
+import java.util.Properties;
+
 
 public interface Service {
 	
+	public void configure(Properties cfg);
 	public void initialize(Cluster c);
 	public void destroy();
 	

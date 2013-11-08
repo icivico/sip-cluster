@@ -29,9 +29,12 @@ import javax.sip.ServerTransaction;
 import javax.sip.SipException;
 import javax.sip.header.ContactHeader;
 import javax.sip.header.ContentTypeHeader;
+import javax.sip.header.Header;
 import javax.sip.header.UserAgentHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
+
+import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 
 public class Linked extends State {
 	
@@ -159,19 +162,24 @@ public class Linked extends State {
 	}
 	
 	@Override
-	public void options() {
-		
+	public void keepalive() {
 		Dialog d = stack.getDialog(chan.getDialogId());
 		//log.debug("Send OPTIONS to " + d.getRemoteParty());
 		try {
 			// hangup with normal code
 			Request request = d.createRequest(Request.OPTIONS);
+			if (ClusterImpl.optionsOnlyToBalancer) {
+				Header keepalive = headerFactory.createHeader("X-Balancer", "keepalive");
+				request.addHeader(keepalive);
+			}
 	        ClientTransaction c = provider.getNewClientTransaction(request);
 	        
 			// send request
 	        d.sendRequest(c);
 	        
 		} catch (SipException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
 			e.printStackTrace();
 		}
 	}

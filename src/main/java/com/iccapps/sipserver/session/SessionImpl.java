@@ -62,6 +62,7 @@ public class SessionImpl implements Session {
 				NoSuchMethodException, ClassNotFoundException {
 		data = s;
 		state = (State) Class.forName(data.getState()).getConstructor(SessionImpl.class).newInstance(this);
+		ep = ClusterImpl.getInstance().getSipEndpoint();
 	}
 	
 	public void registerListener(Controller c) {
@@ -77,7 +78,10 @@ public class SessionImpl implements Session {
 	}
 	
 	public void end() {
-		if (keepaliveTask != null) keepaliveTask.cancel();
+		if (keepaliveTask != null) {
+			keepaliveTask.cancel();
+			keepaliveTask = null;
+		}
 		
 		transaction = null;
 		controller = null;
@@ -121,13 +125,13 @@ public class SessionImpl implements Session {
 	
 	public void recovered() {
 		if (state != null) {
-			state.options();
+			state.keepalive();
 		}
 		// activate options
 		keepaliveTask = new TimerTask() {
 			@Override
 			public void run() {
-				state.options();
+				if (state != null) state.keepalive();
 				
 			}
 		};
@@ -149,7 +153,8 @@ public class SessionImpl implements Session {
 		keepaliveTask = new TimerTask() {
 			@Override
 			public void run() {
-				state.options();
+				if (state != null)
+					state.keepalive();
 				
 			}
 		};
@@ -160,7 +165,10 @@ public class SessionImpl implements Session {
 	}
 	
 	public void fireDisconnected() {
-		if (keepaliveTask != null) keepaliveTask.cancel();
+		if (keepaliveTask != null) {
+			keepaliveTask.cancel();
+			keepaliveTask = null;
+		}
 		
 		if (controller != null)
 			controller.disconnected(this);
@@ -172,7 +180,10 @@ public class SessionImpl implements Session {
 	}
 	
 	public void fireTerminated() {
-		if (keepaliveTask != null) keepaliveTask.cancel();
+		if (keepaliveTask != null) {
+			keepaliveTask.cancel();
+			keepaliveTask = null;
+		}
 		
 		if (controller != null)
 			controller.terminated(this);

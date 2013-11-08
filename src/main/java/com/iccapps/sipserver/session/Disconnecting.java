@@ -40,12 +40,16 @@ public class Disconnecting extends State {
 	@Override
 	public void processResponse(Response response, ClientTransaction ct) {
 		if (ct.getRequest().getMethod().equals(Request.BYE)) {
-			if ( response.getStatusCode() == Response.OK ) ;
-				chan.fireDisconnected();
+			//if ( response.getStatusCode() == Response.OK ) {
+			chan.fireDisconnected();
+				
+			/*} else {
+				
+			}*/
 			
 		} else if(ct.getRequest().getMethod().equals(Request.CANCEL)) {
-			if ( response.getStatusCode() == Response.OK ) ;
-				chan.fireDisconnected();
+			//if ( response.getStatusCode() == Response.OK ) ;
+			chan.fireDisconnected();
 		}
 	}
 

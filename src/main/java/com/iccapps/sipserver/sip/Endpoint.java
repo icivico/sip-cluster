@@ -76,6 +76,8 @@ import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
+import org.mobicents.ha.javax.sip.ClusteredSipStack;
+import org.mobicents.ha.javax.sip.ReplicationStrategy;
 
 import com.iccapps.sipserver.action.Action;
 import com.iccapps.sipserver.action.OutboundCall;
@@ -282,8 +284,9 @@ public class Endpoint implements SipListenerExt {
 	
 	public void recover(SessionImpl chan) {
 		logger.info("Channel recovered : " + chan.getDialogId());
+		// force stack to recover dialog from cache
+		((ClusteredSipStack)sipStack).getDialog(chan.getDialogId());
 		channels.put(chan.getDialogId(), chan);
-		// TODO - send OPTIONS
 	}
 	
 	public SessionImpl getSession(String id) {
@@ -385,7 +388,6 @@ public class Endpoint implements SipListenerExt {
 					// start call and process request
 					chan.init();
 					chan.fireIncoming();
-					
 					chan.replicate();
 				}	
 			}
@@ -461,9 +463,18 @@ public class Endpoint implements SipListenerExt {
 	}
 
 	@Override
-	public void processDialogTimeout(DialogTimeoutEvent arg0) {
-		logger.debug("Dialog Timeout: " + arg0);
-
+	public void processDialogTimeout(DialogTimeoutEvent ev) {
+		logger.debug("Dialog Timeout: " + ev);
+		// find session
+		SessionImpl s = channels.get(ev.getDialog().getDialogId());
+		if (s != null) {
+			s.fireTerminated();
+			channels.remove(s.getDialogId());
+			logger.debug("Channel removed: " + s.getDialogId());
+			cluster.unregister(s);
+			cluster.getService().stop(s);
+			s.end();
+		}
 	}
 
 	private void initiateSession(String fromuri, String touri, String sdp, String reference) {

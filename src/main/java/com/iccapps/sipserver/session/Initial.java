@@ -20,6 +20,8 @@
 
 package com.iccapps.sipserver.session;
 
+import gov.nist.javax.sip.stack.SIPServerTransaction;
+
 import java.text.ParseException;
 
 import javax.sip.ClientTransaction;
@@ -62,8 +64,13 @@ public class Initial extends State {
 	            response = msgFactory.createResponse(Response.SESSION_PROGRESS, request);
 	            ToHeader to = (ToHeader) response.getHeader(ToHeader.NAME);
 		        to.setTag(""+rnd.nextLong()); // Application is supposed to set.
+		        
+		        String txId = ((SIPServerTransaction)st).getTransactionId();
+		        Dialog d = st.getDialog();
+		        d.setApplicationData(txId);
 		        st.sendResponse(response);
-	            
+		        log.debug("TransactionId " + txId + " on dialog " + d.getDialogId());
+		        	            
 	            // change state
 	            chan.setDialogId(st.getDialog().getDialogId());
 	            chan.setState(new WaitAck(chan));

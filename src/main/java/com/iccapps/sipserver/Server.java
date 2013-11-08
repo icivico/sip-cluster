@@ -20,16 +20,12 @@
 
 package com.iccapps.sipserver;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Properties;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
-import com.iccapps.sipserver.api.Cluster;
 import com.iccapps.sipserver.cluster.ClusterException;
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 import com.iccapps.sipserver.exception.StackNotInitialized;
@@ -51,6 +47,8 @@ public class Server {
 	
     public static void main( String[] args ) throws FileNotFoundException, IOException, StackNotInitialized, ClusterException {
     	boolean daemon = false;
+    	
+    	PropertyConfigurator.configure("log4j.properties");
 		
 		if (args.length > 0 && args[0].equals("-d")) {
 			daemon = true;

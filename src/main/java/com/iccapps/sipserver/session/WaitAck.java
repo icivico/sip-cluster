@@ -23,14 +23,20 @@ package com.iccapps.sipserver.session;
 import java.text.ParseException;
 
 import javax.sip.ClientTransaction;
+import javax.sip.Dialog;
 import javax.sip.InvalidArgumentException;
 import javax.sip.ServerTransaction;
 import javax.sip.SipException;
 import javax.sip.header.ContactHeader;
 import javax.sip.header.ContentTypeHeader;
+import javax.sip.header.Header;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
+
+import org.mobicents.ha.javax.sip.ClusteredSipStack;
+
+import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 
 public class WaitAck extends State {
 	
@@ -43,6 +49,8 @@ public class WaitAck extends State {
 		if (request.getMethod().equals(Request.ACK)) {
 			// clear transaction
 			chan.setTransaction(null);
+			st.getDialog().setApplicationData(null);
+			
 			// check canceled
 			if ( !chan.isCanceled() ) {
 				// transition to linked state
@@ -93,12 +101,13 @@ public class WaitAck extends State {
 	
 	@Override
 	protected void answer() {
-		ServerTransaction st = (ServerTransaction)chan.getTransaction();
-		Request request = st.getRequest();
+		log.debug("Answer on " + chan.getDialogId());
+		ServerTransaction st = getServerTransaction();
+		if (st == null) return;
 		
 		try {
 			// accept the call
-	        Response okResponse = msgFactory.createResponse(Response.OK, request);
+	        Response okResponse = msgFactory.createResponse(Response.OK, st.getRequest());
 	        ContactHeader contactHeader = headerFactory.createContactHeader(contact);
 	        okResponse.addHeader(contactHeader);
 	        
@@ -110,6 +119,39 @@ public class WaitAck extends State {
 			
 	        // send response
 	        st.sendResponse(okResponse);
+	        log.warn("Sent 200 OK " + chan.getDialogId());
+	        
+		} catch(ParseException e) {
+			e.printStackTrace();
+		} catch (SipException e) {
+			e.printStackTrace();
+		} catch (InvalidArgumentException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void keepalive() {
+		log.debug("Keepalive on " + chan.getDialogId());
+		ServerTransaction st = getServerTransaction();
+		if (st == null) return;
+		
+		try {
+			// 183
+	        Response progressResponse = msgFactory.createResponse(Response.SESSION_PROGRESS, st.getRequest());
+	        ContactHeader contactHeader = headerFactory.createContactHeader(contact);
+	        progressResponse.addHeader(contactHeader);
+	        String tag = st.getDialog().getLocalTag();
+	        if (tag == null) 
+	        	tag = ""+rnd.nextLong();
+	        ((ToHeader) progressResponse.getHeader(ToHeader.NAME)).setTag(tag);
+	        Header keepalive = headerFactory.createHeader("X-Balancer", "keepalive");
+	        progressResponse.addHeader(keepalive);
+	        
+	        // send response
+	        st.sendResponse(progressResponse);
+	        log.warn("Sent 183 OK " + chan.getDialogId());
+	        log.debug("\n"+progressResponse.toString()+"\n");
 	        
 		} catch(ParseException e) {
 			e.printStackTrace();
@@ -181,6 +223,29 @@ public class WaitAck extends State {
 	public void processResponse(Response response, ClientTransaction ct) {
 		// TODO Auto-generated method stub
 
+	}
+	
+	private ServerTransaction getServerTransaction() {
+		ServerTransaction st = (ServerTransaction)chan.getTransaction();
+		if (st == null) {
+			Dialog d = stack.getDialog(chan.getDialogId());
+			if (d != null) {
+				String txId = (String)d.getApplicationData();
+				if (txId == null) {
+					log.warn("No txId on applicationData " + chan.getDialogId());
+					return null;
+				}
+				st = (ServerTransaction)stack.findTransaction(txId, true);		
+				if (st == null) {
+					log.warn("No transaction found with id " + txId + " on "+chan.getDialogId());
+				}
+				
+			} else {
+				log.warn("No dialog available " + chan.getDialogId());
+			}
+		}
+		
+		return st;
 	}
 
 }

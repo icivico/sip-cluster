@@ -30,6 +30,7 @@ import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.log4j.Logger;
+import org.mobicents.ha.javax.sip.ClusteredSipStack;
 
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
@@ -58,6 +59,8 @@ public class ClusterImpl implements Cluster {
 	
 	private static ClusterImpl instance;
 	private static Properties config;
+	// ONLY for debug
+	public static boolean optionsOnlyToBalancer = true;
 	
 	protected Endpoint sipEndpoint;
 	public Endpoint getSipEndpoint() {
@@ -339,6 +342,14 @@ public class ClusterImpl implements Cluster {
 			}
 		}
 		System.out.println("=========================================");
+		
+		System.out.println("=========================================");
+		Map<String, Object> st = hz.getMap("cache.serverTX");
+		for (String s : st.keySet()) {
+			boolean exists = ((ClusteredSipStack)sipEndpoint.getSipStack()).findTransaction(s, false) != null;
+			System.out.println("ServerTransaction: " + s + ", in stack: " + exists);
+		}
+		System.out.println("=========================================");
 	}
 	
 	public void queueAction(Action a) {
@@ -359,7 +370,7 @@ public class ClusterImpl implements Cluster {
 					orphans.offer(chan);
 				}
 				// remove node
-				logger.info("Remove failed node " + node.getName());
+				logger.info("Remove failed node " + n.getName());
 				nodes.remove(failedNode);
 				
 			} else {

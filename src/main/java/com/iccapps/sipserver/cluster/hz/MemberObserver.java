@@ -24,7 +24,6 @@ import org.apache.log4j.Logger;
 
 import com.hazelcast.core.MembershipEvent;
 import com.hazelcast.core.MembershipListener;
-import com.iccapps.sipserver.cluster.ClusterException;
 
 public class MemberObserver implements MembershipListener {
 

@@ -22,6 +22,8 @@ package com.iccapps.sipserver.action;
 
 public class Ringing extends Action {
 
+	private static final long serialVersionUID = 1L;
+
 	public Ringing(String d) {
 		super(d);
 	}

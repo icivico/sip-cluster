@@ -71,6 +71,6 @@ public abstract class State {
 	protected void hangup() {};
 	protected void reject(int code) {};
 	protected void message(String text) {};
-	protected void options() {};
+	protected void keepalive() {};
 	protected void update() {};
 }

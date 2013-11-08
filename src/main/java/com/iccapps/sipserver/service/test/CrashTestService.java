@@ -18,8 +18,9 @@
     You should have received a copy of the GNU General Public License
     along with sip-cluster. If not, see <http://www.gnu.org/licenses/>.*/
 
-package com.iccapps.sipserver.service;
+package com.iccapps.sipserver.service.test;
 
+import java.util.Map;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -33,14 +34,15 @@ import com.iccapps.sipserver.api.Service;
 import com.iccapps.sipserver.api.Session;
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 
-public class TestService implements Service, Controller {
+public class CrashTestService implements Service, Controller {
 	
-	private static Logger logger = Logger.getLogger(TestService.class);
+	private static Logger logger = Logger.getLogger(CrashTestService.class);
 	
 	private Timer timer = new Timer();
 	private Cluster cluster;
+	private Map<String, Object> calls;
 	
-	public TestService() { }
+	public CrashTestService() { }
 	
 	@Override
 	public void configure(Properties config) { }
@@ -48,18 +50,18 @@ public class TestService implements Service, Controller {
 	@Override
 	public void initialize(Cluster c) {
 		cluster = c;
+		calls = cluster.createDistributedMap("testservice.calls");
 	}
 	
 	@Override
 	public void destroy() {
-		// TODO Auto-generated method stub
+		
 		
 	}
 	
 	@Override
 	public void start(Session chan) {
 		chan.registerListener(this);
-
 	}
 
 	@Override
@@ -70,37 +72,45 @@ public class TestService implements Service, Controller {
 	@Override
 	public void incoming(Session s) {
 		logger.info("Incoming : " + s.getDialogId());
+		calls.put(s.getDialogId(), new TestCallState(s.getDialogId(), TestCallState.PROGRESS));
 		
-		final String dialogId = s.getDialogId();
-		
+		// force crash
 		timer.schedule(new TimerTask() {
-			
 			@Override
 			public void run() {
-				cluster.doAnswer(dialogId, null);
-				
+				System.exit(0);
 			}
-		}, 2000);
-
-		
+		}, 500);
 	}
 
 	@Override
 	public void progress(Session chan) {
 		logger.info("Progress : " + chan.getDialogId());
-		
+		TestCallState cs = (TestCallState)calls.get(chan.getDialogId());
+		if (cs != null) {
+			cs.setState(TestCallState.PROGRESS);
+			calls.put(chan.getDialogId(), cs);
+		}
 	}
 
 	@Override
 	public void connected(Session chan) {
 		logger.info("Connected : " + chan.getDialogId());
-		
+		TestCallState cs = (TestCallState)calls.get(chan.getDialogId());
+		if (cs != null) {
+			cs.setState(TestCallState.CONNECT);
+			calls.put(chan.getDialogId(), cs);
+		}
 	}
 
 	@Override
 	public void disconnected(Session chan) {
 		logger.info("Disconnected : " + chan.getDialogId());
-		
+		TestCallState cs = (TestCallState)calls.get(chan.getDialogId());
+		if (cs != null) {
+			cs.setState(TestCallState.DISCONNECT);
+			calls.put(chan.getDialogId(), cs);
+		}
 	}
 
 	@Override
@@ -119,6 +129,7 @@ public class TestService implements Service, Controller {
 	public void terminated(Session chan) {
 		logger.info("Terminated : " + chan.getDialogId());
 		chan.registerListener(null);
+		calls.remove(chan.getDialogId());
 	}
 	
 	@Override
@@ -140,6 +151,21 @@ public class TestService implements Service, Controller {
 	public void handover(Session chan) {
 		logger.info("Channel handover : " + chan.getDialogId());
 		chan.registerListener(this);
+		TestCallState cs = (TestCallState)calls.get(chan.getDialogId());
+		if (cs != null) {
+			if (cs.getState().equals(TestCallState.PROGRESS)) {
+				final String dialogId = chan.getDialogId();
+				timer.schedule(new TimerTask() {
+					@Override
+					public void run() {
+						cluster.doAnswer(dialogId, null);
+					}
+				}, 2000);
+			} else {
+				logger.info("Call not in Progress state : " + chan.getDialogId());
+				
+			}
+		}
 	}
 
 	@Override
@@ -150,7 +176,8 @@ public class TestService implements Service, Controller {
 
 	@Override
 	public void report() {
-		// TODO Auto-generated method stub
-		
+		for(Object cs : calls.values()) {
+			System.out.println(((TestCallState)cs).getId().substring(0, 15) + " : " + ((TestCallState)cs).getState());
+		}
 	}
 }

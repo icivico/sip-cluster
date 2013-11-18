@@ -123,6 +123,8 @@ public class OnlyCollectDTMF implements Controller {
 				logger.error("DTMF detection failed " + event.getSignalString());
 			}
 
+			// disconnect call
+			service.cluster.doHangup(dialogId);
 		}
 	}
 

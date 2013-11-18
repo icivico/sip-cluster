@@ -84,7 +84,6 @@ import com.iccapps.sipserver.action.OutboundCall;
 import com.iccapps.sipserver.api.Constants;
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 import com.iccapps.sipserver.exception.StackNotInitialized;
-import com.iccapps.sipserver.session.SessionImpl;
 
 public class Endpoint implements SipListenerExt {
 	

@@ -18,7 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with sip-cluster. If not, see <http://www.gnu.org/licenses/>.*/
 
-package com.iccapps.sipserver.session;
+package com.iccapps.sipserver.sip;
 
 import java.util.List;
 import java.util.Random;
@@ -36,7 +36,6 @@ import org.apache.log4j.Logger;
 import org.mobicents.ha.javax.sip.ClusteredSipStack;
 
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
-import com.iccapps.sipserver.sip.Endpoint;
 
 public abstract class State {
 	protected Logger log = Logger.getLogger(State.class);

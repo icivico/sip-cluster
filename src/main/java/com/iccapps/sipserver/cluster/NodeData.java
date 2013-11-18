@@ -24,7 +24,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.iccapps.sipserver.session.SessionState;
+import com.iccapps.sipserver.sip.SessionState;
 
 public class NodeData implements Serializable {
 	

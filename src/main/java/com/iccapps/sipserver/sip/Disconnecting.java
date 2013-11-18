@@ -18,7 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with sip-cluster. If not, see <http://www.gnu.org/licenses/>.*/
 
-package com.iccapps.sipserver.session;
+package com.iccapps.sipserver.sip;
 
 import javax.sip.ClientTransaction;
 import javax.sip.ServerTransaction;

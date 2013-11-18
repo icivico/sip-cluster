@@ -49,9 +49,9 @@ import com.iccapps.sipserver.api.Session;
 import com.iccapps.sipserver.cluster.ClusterException;
 import com.iccapps.sipserver.cluster.NodeData;
 import com.iccapps.sipserver.exception.StackNotInitialized;
-import com.iccapps.sipserver.session.SessionImpl;
-import com.iccapps.sipserver.session.SessionState;
 import com.iccapps.sipserver.sip.Endpoint;
+import com.iccapps.sipserver.sip.SessionImpl;
+import com.iccapps.sipserver.sip.SessionState;
 
 public class ClusterImpl implements Cluster {
 	

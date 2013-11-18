@@ -18,7 +18,7 @@
     You should have received a copy of the GNU General Public License
     along with sip-cluster. If not, see <http://www.gnu.org/licenses/>.*/
 
-package com.iccapps.sipserver.session;
+package com.iccapps.sipserver.sip;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.TimerTask;
@@ -35,7 +35,6 @@ import com.iccapps.sipserver.action.UpdateAck;
 import com.iccapps.sipserver.api.Controller;
 import com.iccapps.sipserver.api.Session;
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
-import com.iccapps.sipserver.sip.Endpoint;
 
 public class SessionImpl implements Session {
 	

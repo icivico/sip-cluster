@@ -380,6 +380,11 @@ public class Endpoint implements SipListenerExt {
 					Response res = messageFactory.createResponse(Response.NOT_IMPLEMENTED, req);
 					((ToHeader)res.getHeader(ToHeader.NAME)).setTag(""+rnd.nextLong());
 					sipProvider.getNewServerTransaction(req).sendResponse(res);
+					
+				} else if (req.getMethod().equals(Request.PUBLISH)) {
+					Response res = messageFactory.createResponse(Response.NOT_IMPLEMENTED, req);
+					((ToHeader)res.getHeader(ToHeader.NAME)).setTag(""+rnd.nextLong());
+					sipProvider.getNewServerTransaction(req).sendResponse(res);
 				}
 			}
 		} catch (ParseException e) {

@@ -10,7 +10,6 @@ import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.locks.Lock;
 
 import javax.sip.ClientTransaction;
 import javax.sip.InvalidArgumentException;

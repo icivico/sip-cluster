@@ -364,6 +364,12 @@ public class Endpoint implements SipListenerExt {
 					
 						ExpiresHeader exp = headerFactory.createExpiresHeader(expires);
 						res.addHeader(exp);
+						
+						Address binding = (Address)ct.getAddress().clone();
+						((SipURI)binding.getURI()).setParameter("expires", ""+expires);
+						ContactHeader ch = headerFactory.createContactHeader(binding);
+						res.addHeader(ch);
+						
 					} else  {
 						res = messageFactory.createResponse(Response.NOT_FOUND, req);
 						((ToHeader)res.getHeader(ToHeader.NAME)).setTag(""+rnd.nextLong());
@@ -389,7 +395,12 @@ public class Endpoint implements SipListenerExt {
 					chan.init();
 					chan.fireIncoming();
 					chan.replicate();
-				}	
+					
+				} else if (req.getMethod().equals(Request.SUBSCRIBE)) {
+					Response res = messageFactory.createResponse(Response.NOT_IMPLEMENTED, req);
+					((ToHeader)res.getHeader(ToHeader.NAME)).setTag(""+rnd.nextLong());
+					sipProvider.getNewServerTransaction(req).sendResponse(res);
+				}
 			}
 		} catch (ParseException e) {
 			e.printStackTrace();
@@ -485,7 +496,7 @@ public class Endpoint implements SipListenerExt {
 			ToHeader toHeader = headerFactory.createToHeader(toNameAddress, null);
 
 	        SipURI requestURI = (SipURI) toNameAddress.getURI();//addressFactory.createAddress(arg0).createSipURI(, arg1)(touri);
-	        requestURI.setTransportParam("udp");
+	        //requestURI.setTransportParam("udp");
 
 	        ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 	        ViaHeader viaHeader = headerFactory.createViaHeader(

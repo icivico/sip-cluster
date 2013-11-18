@@ -37,7 +37,6 @@ import com.iccapps.sipserver.api.Session;
 public class DistributedPBX implements Service, Controller {
 	
 	private static Logger logger = Logger.getLogger(DistributedPBX.class);
-	private Map<String, Object> registrations;
 	private List<Object> bridges;
 	private Lock bridgesLock;
 	private Cluster cluster;
@@ -51,7 +50,6 @@ public class DistributedPBX implements Service, Controller {
 	public void initialize(Cluster c) {
 		cluster = c;
 		HazelcastInstance hz = Hazelcast.getHazelcastInstanceByName("jain-sip-ha");
-		registrations = hz.getMap("pbx.registrar");
 		bridges = hz.getList("pbx.bridges");
 		bridgesLock = hz.getLock("pbx.bridgesLock");
 	}
@@ -76,25 +74,17 @@ public class DistributedPBX implements Service, Controller {
 	}
 
 	@Override
-	public int registration(String user, String uri) {
-		logger.info("Registration: " + user + " -> " + uri);
-		registrations.put(user, uri);
-		return 60;
-	}
-
-	@Override
 	public void incoming(Session s) {
 		// search caller
 		final String caller = s.getOriginationURI();
 		final String dialogId = s.getDialogId();
 		final String sdp = s.getRemoteSDP();
 		String called = s.getDestinationURI();
-		called = called.substring(called.indexOf(':')+1, called.indexOf('@'));
-		final String calledUri = (String)registrations.get(called);
+		//called = called.substring(called.indexOf(':')+1, called.indexOf('@'));
 		
 		logger.info(caller + " wants to call " + called);
 		
-		if (calledUri != null) {
+		if (called != null) {
 			Bridge b = new Bridge();
 			b.setOriginationLeg(dialogId);
 			bridgesLock.lock();
@@ -106,7 +96,7 @@ public class DistributedPBX implements Service, Controller {
 				bridgesLock.unlock();
 			}
 			// originate call
-			cluster.originate(caller, calledUri, sdp, dialogId);
+			cluster.originate(caller, called, sdp, dialogId);
 			
 		} else {
 			cluster.doReject(dialogId, Session.REJECT_CODE_NOT_FOUND);
@@ -219,6 +209,12 @@ public class DistributedPBX implements Service, Controller {
 		} finally {
 			bridgesLock.unlock();
 		}
+		
+	}
+
+	@Override
+	public void registration(String aor, boolean reg) {
+		// TODO Auto-generated method stub
 		
 	}
 

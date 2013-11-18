@@ -169,9 +169,7 @@ public class CrashTestService implements Service, Controller {
 	}
 
 	@Override
-	public int registration(String user, String uri) {
-		logger.info("Registration: " + user + " -> " + uri);
-		return 60;
+	public void registration(String user, boolean reg) {
 	}
 
 	@Override

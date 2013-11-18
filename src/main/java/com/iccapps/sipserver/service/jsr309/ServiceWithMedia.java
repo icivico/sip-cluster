@@ -108,8 +108,7 @@ public class ServiceWithMedia implements Service {
 	}
 
 	@Override
-	public int registration(String user, String uri) {
-		return 60;
+	public void registration(String aor, boolean reg) {
 	}
 
 	@Override

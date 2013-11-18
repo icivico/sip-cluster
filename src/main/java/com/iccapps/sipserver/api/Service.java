@@ -32,6 +32,6 @@ public interface Service {
 	public void start(Session s);
 	public void stop(Session s);
 	public void handover(Session s);
-	public int registration(String user, String uri);
+	public void registration(String aor, boolean reg);
 	public void report();
 }

@@ -50,6 +50,7 @@ import com.iccapps.sipserver.cluster.ClusterException;
 import com.iccapps.sipserver.cluster.NodeData;
 import com.iccapps.sipserver.exception.StackNotInitialized;
 import com.iccapps.sipserver.sip.Endpoint;
+import com.iccapps.sipserver.sip.RegistrarImpl;
 import com.iccapps.sipserver.sip.SessionImpl;
 import com.iccapps.sipserver.sip.SessionState;
 
@@ -66,6 +67,8 @@ public class ClusterImpl implements Cluster {
 	public Endpoint getSipEndpoint() {
 		return sipEndpoint;
 	}
+	
+	protected RegistrarImpl registrar;
 
 	protected Service service;
 	public Service getService() {
@@ -136,7 +139,8 @@ public class ClusterImpl implements Cluster {
 		service = createServiceInstance();
 		
 		startSipEndpoint();
-		startCluster();
+		startCluster();	
+		startRegistrar();
 		initializeService();
 	}
 	
@@ -257,6 +261,17 @@ public class ClusterImpl implements Cluster {
 			}
 		});
         thChannelHandover.start();
+	}
+	
+	private void startRegistrar() {
+		try {
+			registrar = new RegistrarImpl(sipEndpoint, this);
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void initializeService() {

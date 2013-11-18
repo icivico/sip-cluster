@@ -63,7 +63,6 @@ import javax.sip.header.CSeqHeader;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
 import javax.sip.header.ContentTypeHeader;
-import javax.sip.header.ExpiresHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.Header;
 import javax.sip.header.HeaderFactory;
@@ -77,7 +76,6 @@ import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
 import org.mobicents.ha.javax.sip.ClusteredSipStack;
-import org.mobicents.ha.javax.sip.ReplicationStrategy;
 
 import com.iccapps.sipserver.action.Action;
 import com.iccapps.sipserver.action.OutboundCall;
@@ -97,6 +95,7 @@ public class Endpoint implements SipListenerExt {
 	private String jsipConfigFile;
 	
 	private ClusterImpl cluster;
+	private RegistrarImpl registrar;
 	private SipStack sipStack;
 	private SipFactory sipFactory;
 	protected AddressFactory addressFactory;
@@ -243,6 +242,7 @@ public class Endpoint implements SipListenerExt {
 			throw new StackNotInitialized("Contact address not created", e);
 		}
 		
+		// start balancer keepalive
 		try {
 			balancer = addressFactory.createAddress(balancerAddressStr);
 			
@@ -349,32 +349,13 @@ public class Endpoint implements SipListenerExt {
 					//logger.debug("Sent response: " + res.getStatusCode());
 					
 				} else if (req.getMethod().equals(Request.REGISTER)) {
-					ToHeader to = (ToHeader) req.getHeader(ToHeader.NAME);
-					SipURI uri = (SipURI)to.getAddress().getURI();
-					String user = uri.getUser();
-					ContactHeader ct = (ContactHeader)req.getHeader(ContactHeader.NAME);
-					String contactUri = ct.getAddress().getURI().toString();
-					int expires = cluster.getService().registration(user, contactUri);
-					
-					Response res = null;
-					if (expires > 0) {
-						res = messageFactory.createResponse(Response.OK, req);
+					if (registrar != null) {
+						registrar.processRequest(req, st);
+					} else {
+						Response res = messageFactory.createResponse(Response.NOT_IMPLEMENTED, req);
 						((ToHeader)res.getHeader(ToHeader.NAME)).setTag(""+rnd.nextLong());
-					
-						ExpiresHeader exp = headerFactory.createExpiresHeader(expires);
-						res.addHeader(exp);
-						
-						Address binding = (Address)ct.getAddress().clone();
-						((SipURI)binding.getURI()).setParameter("expires", ""+expires);
-						ContactHeader ch = headerFactory.createContactHeader(binding);
-						res.addHeader(ch);
-						
-					} else  {
-						res = messageFactory.createResponse(Response.NOT_FOUND, req);
-						((ToHeader)res.getHeader(ToHeader.NAME)).setTag(""+rnd.nextLong());
+						sipProvider.getNewServerTransaction(req).sendResponse(res);
 					}
-					sipProvider.getNewServerTransaction(req).sendResponse(res);
-					//logger.debug("Sent response: " + res.getStatusCode());
 					
 				} else if (req.getMethod().equals(Request.INVITE)) {
 					ServerTransaction nst = sipProvider.getNewServerTransaction(req);
@@ -493,10 +474,15 @@ public class Endpoint implements SipListenerExt {
 			FromHeader fromHeader = headerFactory.createFromHeader(fromNameAddress, ""+rnd.nextLong());
 			Address toNameAddress = addressFactory.createAddress(touri);
 			ToHeader toHeader = headerFactory.createToHeader(toNameAddress, null);
+			
+	        // find on registrar
+	        if (registrar != null) {
+	        	registrar.find(toNameAddress.getURI());
+	        }
 
-	        SipURI requestURI = (SipURI) toNameAddress.getURI();//addressFactory.createAddress(arg0).createSipURI(, arg1)(touri);
-	        //requestURI.setTransportParam("udp");
+	        SipURI requestURI = (SipURI) toNameAddress.getURI();
 
+	        
 	        ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
 	        ViaHeader viaHeader = headerFactory.createViaHeader(
 	        			udp.getIPAddress(),
@@ -581,6 +567,14 @@ public class Endpoint implements SipListenerExt {
 
 	public Timer getTimer() {
 		return timer;
+	}
+	
+	public RegistrarImpl getRegistrar() {
+		return registrar;
+	}
+
+	public void setRegistrar(RegistrarImpl registrar) {
+		this.registrar = registrar;
 	}
 
 }

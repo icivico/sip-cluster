@@ -85,8 +85,8 @@ public class GroovyService implements Service {
 	}
 
 	@Override
-	public int registration(String user, String uri) {
-		return service.registration(user, uri);
+	public void registration(String aor, boolean reg) {
+		service.registration(aor, reg);
 	}
 
 	@Override

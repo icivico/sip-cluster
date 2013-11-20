@@ -27,6 +27,9 @@ import javax.sip.message.Response;
 import org.apache.log4j.Logger;
 
 import com.iccapps.sipserver.api.Cluster;
+import com.iccapps.sipserver.cluster.hz.ClusterImpl;
+import com.iccapps.sipserver.db.OrientDbRegistrarProvider;
+import com.iccapps.sipserver.sip.registrar.SipUser;
 
 public class RegistrarImpl {
 	
@@ -35,14 +38,17 @@ public class RegistrarImpl {
 	private Cluster cluster;
 	private Map<String, Object> registry;
 	private Properties credentials;
+	private OrientDbRegistrarProvider db;
 	
-	public RegistrarImpl(Endpoint e, Cluster c) throws FileNotFoundException, IOException {
+	public RegistrarImpl(Endpoint e, Cluster c, Properties config) throws FileNotFoundException, IOException {
 		ep = e;
 		ep.setRegistrar(this);
 		cluster = c;
 		registry = cluster.createDistributedMap("registrar.registry");
 		credentials = new Properties();
-		credentials.load(new FileInputStream(new File("users.properties")));
+		credentials.load(new FileInputStream(new File("registrar.properties")));
+		db = new OrientDbRegistrarProvider();
+		db.configure(config);
 	}
 	
 	public void processRequest(Request req, ServerTransaction st) {
@@ -53,14 +59,31 @@ public class RegistrarImpl {
 			Response response = ep.messageFactory.createResponse(Response.TRYING, req);
 			st.sendResponse(response);
 			
+			// check domain
+			if (!req.getRequestURI().isSipURI()) {
+				// TODO - uri not supported
+				return;
+			}
+			String domain = ((SipURI)req.getRequestURI()).getHost();
+			String [] domains = credentials.getProperty("domains").split(",");
+			boolean allowedDomain = false;
+			for (String d : domains) {
+				if (d.equalsIgnoreCase(domain)) {
+					allowedDomain = true;
+					break;
+				}
+			}
+			if (!allowedDomain) {
+				// TODO - domain not found
+			}
+			
 			// process
 			ToHeader to = (ToHeader) req.getHeader(ToHeader.NAME);
 			SipURI aor = (SipURI)to.getAddress().getURI();
-			String user = aor.getUser()+"@"+aor.getHost();
 			
 			// check user
-			String expectedPass = credentials.getProperty(user);
-			if (expectedPass == null) {
+			SipUser u = db.findSipUser(aor.getUser(), aor.getHost());
+			if (u == null) {
 				// forbidden
 				Response res = ep.messageFactory.createResponse(Response.NOT_FOUND, req);
 				st.sendResponse(res);
@@ -71,7 +94,7 @@ public class RegistrarImpl {
 			// Verify authorization
 			try {
 				DigestServerAuthenticationHelper dsam = new DigestServerAuthenticationHelper();
-				if (!dsam.doAuthenticatePlainTextPassword(req, expectedPass)) {
+				if (!dsam.doAuthenticatePlainTextPassword(req, u.getPassword())) {
 	                Response challengeResponse = ep.messageFactory.createResponse(
 	                        Response.UNAUTHORIZED, req);
 	                dsam.generateChallenge(ep.headerFactory, challengeResponse, "nist.gov");

@@ -265,7 +265,9 @@ public class ClusterImpl implements Cluster {
 	
 	private void startRegistrar() {
 		try {
-			registrar = new RegistrarImpl(sipEndpoint, this);
+			boolean enabled = Boolean.parseBoolean(config.getProperty(Constants.REGISTRAR_ENABLED, "false"));
+			if (enabled) 
+				registrar = new RegistrarImpl(sipEndpoint, this, config);
 			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

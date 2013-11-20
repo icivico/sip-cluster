@@ -31,5 +31,7 @@ public abstract class Constants {
 	public static final String SERVICE_CLASS_NAME = "service.className";
 	
 	public static final String FRONTEND = "frontend";
+	
+	public static final String REGISTRAR_ENABLED = "registrar.enabled";
 
 }

@@ -33,6 +33,21 @@ public class OrientDbRegistrarProvider {
 		dbpass = config.getProperty(ORIENTDB_PASS, "guest");
 	}
 
+	public boolean isDomainSupported(String domain) {
+		ODatabaseDocumentTx db = ODatabaseDocumentPool.global().acquire(url, dbuser, dbpass);
+		try {
+			List<ODocument> result = db.query(
+				    new OSQLSynchQuery<ODocument>("select * from domain where name = '" + domain + "'"));
+			if (result != null && result.size() > 0) {
+				return true;
+			}
+
+		} finally {
+			db.close();
+		}
+		return false;
+	}
+	
 	public SipUser findSipUser(String user, String domain) {
 		ODatabaseDocumentTx db = ODatabaseDocumentPool.global().acquire(url, dbuser, dbpass);
 		try {

@@ -178,7 +178,9 @@ public class Endpoint implements SipListenerExt {
 		pathName = config.getProperty(Constants.JAIN_SIP_PATHNAME, "org.mobicents.ha");
 		port = config.getProperty(Constants.JAIN_SIP_PORT, "5080");
 		host = config.getProperty(Constants.JAIN_SIP_ADDRESS, "0.0.0.0");
-		balancerAddressStr = "sip:"+config.getProperty(Constants.FRONTEND);
+		String frontendConf = config.getProperty(Constants.FRONTEND);
+		if (frontendConf != null)
+			balancerAddressStr = "sip:"+ frontendConf;
 		jsipConfigFile = config.getProperty(Constants.JAIN_SIP_CONFIG_FILE, "jsip.properties");
 	}
 	
@@ -244,7 +246,8 @@ public class Endpoint implements SipListenerExt {
 		
 		// start balancer keepalive
 		try {
-			balancer = addressFactory.createAddress(balancerAddressStr);
+			if (balancerAddressStr != null)
+				balancer = addressFactory.createAddress(balancerAddressStr);
 			
 		} catch (ParseException e) {
 			logger.error("Creating contact address", e);

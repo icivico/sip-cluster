@@ -82,6 +82,7 @@ import com.iccapps.sipserver.action.OutboundCall;
 import com.iccapps.sipserver.api.Constants;
 import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 import com.iccapps.sipserver.exception.StackNotInitialized;
+import com.iccapps.sipserver.sip.registrar.Binding;
 
 public class Endpoint implements SipListenerExt {
 	
@@ -477,68 +478,42 @@ public class Endpoint implements SipListenerExt {
 	}
 
 	private void initiateSession(String fromuri, String touri, String sdp, String reference) {
-		try {
-			Address fromNameAddress = addressFactory.createAddress(fromuri);
-			FromHeader fromHeader = headerFactory.createFromHeader(fromNameAddress, ""+rnd.nextLong());
-			Address toNameAddress = addressFactory.createAddress(touri);
-			ToHeader toHeader = headerFactory.createToHeader(toNameAddress, null);
-			
-	        // find on registrar
-	        if (registrar != null) {
-	        	registrar.find(toNameAddress.getURI());
-	        }
-
-	        SipURI requestURI = (SipURI) toNameAddress.getURI();
-
-	        
-	        ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
-	        ViaHeader viaHeader = headerFactory.createViaHeader(
-	        			udp.getIPAddress(),
-	        			udp.getPort(),
-	                    "udp",
-	                    null);
-	        viaHeaders.add(viaHeader);
-
-	        CallIdHeader callIdHeader = sipProvider.getNewCallId();
-	        CSeqHeader cSeqHeader = headerFactory.createCSeqHeader((long)1, Request.INVITE);
-	        MaxForwardsHeader maxForwards = headerFactory.createMaxForwardsHeader(70);
-	        
-	        Request invite = messageFactory.createRequest(
-	                requestURI, Request.INVITE, callIdHeader, cSeqHeader,
-	                fromHeader, toHeader, viaHeaders, maxForwards);
-	        
-	        ContactHeader contactHeader = headerFactory.createContactHeader(contact);
-	        invite.addHeader(contactHeader);
-	        
-	        UserAgentHeader userAgentHeader = headerFactory.createUserAgentHeader(userAgent);
-	        invite.addHeader(userAgentHeader);
-	        
-	        Address routeAddr = (Address)balancer.clone();
-	        ((SipURI)routeAddr.getURI()).setLrParam();
-	        invite.addHeader(headerFactory.createRouteHeader(routeAddr));
-	        
-	        ContentTypeHeader cth = headerFactory.createContentTypeHeader("application", "sdp");
-			invite.setContent(sdp.getBytes(), cth);
-	        
-	        ClientTransaction trans = sipProvider.getNewClientTransaction(invite);
-	        logger.debug("ClientTransaction " + trans);
-	        
-	        SessionImpl c = new SessionImpl();
-	        c.setOriginURI(fromuri);
-	        c.setDestinationURI(touri);
-	        c.setLocalSDP(sdp);
-	        c.getData().setReference(reference);
-	        outbounds.put(callIdHeader.getCallId(), c);
-	        
-	        trans.sendRequest();
-	        
-		} catch (ParseException e) {
-			e.printStackTrace();
-		} catch (InvalidArgumentException e) {
-			e.printStackTrace();
-		} catch (SipException e) {
-			e.printStackTrace();
-		}	
+		if (registrar != null) {
+        	List<Binding> bindings = registrar.find(touri);
+        	if (bindings == null || bindings.size() == 0) {
+        		// send invite to touri
+        		SessionImpl s = new SessionImpl();
+                s.setOriginURI(fromuri);
+                s.setDestinationURI(touri);
+                s.setLocalSDP(sdp);
+                s.getData().setReference(reference);
+                String callid = s.invite(touri, balancer);
+                if (callid != null)
+                	outbounds.put(callid, s);
+        	} else {
+        		for (Binding b : bindings) {
+        			// send invite to each contact
+            		SessionImpl s = new SessionImpl();
+            		s.setOriginURI(fromuri);
+                    s.setDestinationURI(touri);
+                    s.setLocalSDP(sdp);
+                    s.getData().setReference(reference);
+                    String callid = s.invite(b.getContact(), balancer);
+                    if (callid != null)
+                    	outbounds.put(callid, s);
+        		}
+        	}
+        } else {
+        	// send invite to touri
+    		SessionImpl s = new SessionImpl();
+            s.setOriginURI(fromuri);
+            s.setDestinationURI(touri);
+            s.setLocalSDP(sdp);
+            s.getData().setReference(reference);
+            String callid = s.invite(touri, balancer);
+            if (callid != null)
+            	outbounds.put(callid, s);
+        }
 	}
 	
 	public SipStack getSipStack() {

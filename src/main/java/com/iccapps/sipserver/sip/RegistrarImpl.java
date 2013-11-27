@@ -234,17 +234,21 @@ public class RegistrarImpl {
 					}
 					String callid = ((CallIdHeader)req.getHeader(CallIdHeader.NAME)).getCallId();
 					long cseq = ((CSeqHeader)req.getHeader(CSeqHeader.NAME)).getSeqNumber();
-					if (existingBinding == null && expires > 0) {
-						/* If the binding does not exist, it is tentatively added.*/
-						Binding binding = new Binding();
-						binding.setContact(contactUri);
-						binding.setAor(aorS);
-						binding.setCallid(callid);
-						binding.setCseq(cseq);
-						binding.setExpires(expires);
-						bindings.add(binding);
-						logger.info("AoR contact registered " + aorS + " -> " + contactUri);
-						
+					if (existingBinding == null) {
+						if (expires > 0) {
+							/* If the binding does not exist, it is tentatively added.*/
+							Binding binding = new Binding();
+							binding.setContact(contactUri);
+							binding.setAor(aorS);
+							binding.setCallid(callid);
+							binding.setCseq(cseq);
+							binding.setExpires(expires);
+							bindings.add(binding);
+							logger.info("AoR contact registered " + aorS + " -> " + contactUri);
+							
+						} else {
+							/* if does not exists binding and expires == 0, then do nothing */
+						}			
 					} else {
 						/*If the binding does exist, the registrar checks the Call-ID value.  If
 				         the Call-ID value in the existing binding differs from the
@@ -334,8 +338,8 @@ public class RegistrarImpl {
 		
 	}
 	
-	public URI find(URI aor) {
-		logger.debug("Find " + aor.toString());
-		return (URI)registry.get(aor.toString());
+	public List<Binding> find(String aorS) {
+		logger.debug("Find " + aorS);
+		return (List<Binding>)registry.get(aorS);
 	}
 }

@@ -21,6 +21,8 @@
 package com.iccapps.sipserver.service.pbx;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Bridge implements Serializable {
 
@@ -28,6 +30,8 @@ public class Bridge implements Serializable {
 	
 	private String originationLeg;
 	private String destinationLeg;
+	
+	private List<String> inProgressLegs = new ArrayList<String>();
 	
 	public String getOriginationLeg() {
 		return originationLeg;
@@ -41,5 +45,7 @@ public class Bridge implements Serializable {
 	public void setDestinationLeg(String destinationLeg) {
 		this.destinationLeg = destinationLeg;
 	}
-
+	public List<String> getInProgressLegs() {
+		return inProgressLegs;
+	}
 }

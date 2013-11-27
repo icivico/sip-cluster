@@ -224,28 +224,4 @@ public class WaitAck extends State {
 		// TODO Auto-generated method stub
 
 	}
-	
-	private ServerTransaction getServerTransaction() {
-		ServerTransaction st = (ServerTransaction)chan.getTransaction();
-		if (st == null) {
-			Dialog d = stack.getDialog(chan.getDialogId());
-			if (d != null) {
-				String txId = (String)d.getApplicationData();
-				if (txId == null) {
-					log.warn("No txId on applicationData " + chan.getDialogId());
-					return null;
-				}
-				st = (ServerTransaction)stack.findTransaction(txId, true);		
-				if (st == null) {
-					log.warn("No transaction found with id " + txId + " on "+chan.getDialogId());
-				}
-				
-			} else {
-				log.warn("No dialog available " + chan.getDialogId());
-			}
-		}
-		
-		return st;
-	}
-
 }

@@ -20,9 +20,11 @@
 
 package com.iccapps.sipserver.sip;
 
+import gov.nist.javax.sip.stack.SIPClientTransaction;
 import gov.nist.javax.sip.stack.SIPServerTransaction;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 
 import javax.sip.ClientTransaction;
 import javax.sip.Dialog;
@@ -31,9 +33,17 @@ import javax.sip.ServerTransaction;
 import javax.sip.SipException;
 import javax.sip.TransactionAlreadyExistsException;
 import javax.sip.TransactionUnavailableException;
+import javax.sip.address.Address;
+import javax.sip.address.SipURI;
 import javax.sip.header.CSeqHeader;
+import javax.sip.header.CallIdHeader;
+import javax.sip.header.ContactHeader;
+import javax.sip.header.ContentTypeHeader;
 import javax.sip.header.FromHeader;
+import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.ToHeader;
+import javax.sip.header.UserAgentHeader;
+import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -51,9 +61,9 @@ public class Initial extends State {
 		if ( request.getMethod().equals(Request.INVITE) ) {
 			chan.setTransaction(st);
 			FromHeader fromHeader = (FromHeader)request.getHeader(FromHeader.NAME);
-			chan.setOriginURI(fromHeader.getAddress().toString());
+			chan.setOriginURI(fromHeader.getAddress().getURI().toString());
 			ToHeader toHeader = (ToHeader)request.getHeader(ToHeader.NAME);
-			chan.setDestinationURI(toHeader.getAddress().toString());
+			chan.setDestinationURI(toHeader.getAddress().getURI().toString());
 			chan.setRemoteSDP(new String(request.getRawContent()));
 	        try {
 	        	// send trying
@@ -123,7 +133,7 @@ public class Initial extends State {
 				
 			} else if ( response.getStatusCode() == Response.REQUEST_TERMINATED) {
 				log.debug("Received 487 on " + chan.getDialogId());
-				sendAck(response);
+				//sendAck(response);
 				chan.fireDisconnected();
 			}
 		}
@@ -144,21 +154,80 @@ public class Initial extends State {
 	
 	@Override
 	protected void hangup() {
-		/*try {
+		ClientTransaction ct = (ClientTransaction)getClientTransaction();
+		
+		try {
 			// cancel
-			Request cancel = chan.getInvite().createCancel();
-			ClientTransaction ct = sip.getSipProvider().getNewClientTransaction(cancel);
-			
-			// TODO - if no authentication, it fails!!
-			cancel.addHeader(call.getInvite().getRequest().getHeader(AuthorizationHeader.NAME));
-	        ContactHeader contactHeader = headerFactory.createContactHeader(sip.getContact());
-	        cancel.addHeader(contactHeader);
+	        Request cancelReq = ct.createCancel();
+	        ContactHeader contactHeader = headerFactory.createContactHeader(contact);
+	        cancelReq.addHeader(contactHeader);
+	        
+	        chan.setCanceled(true);
 	        
 	        // send response
-	        ct.sendRequest();
+	        provider.sendRequest(cancelReq);
 	        
 		} catch (SipException e) {
 			e.printStackTrace();
-		}*/
+		} 
+	}
+	
+	public String invite(String requri, String touri, String fromuri, Address balancer, String sdp) {
+		try {
+			Address fromNameAddress = addressFactory.createAddress(fromuri);
+			FromHeader fromHeader = headerFactory.createFromHeader(fromNameAddress, ""+rnd.nextLong());
+			Address toNameAddress = addressFactory.createAddress(touri);
+			ToHeader toHeader = headerFactory.createToHeader(toNameAddress, null);
+			
+	        SipURI requestURI = (SipURI) addressFactory.createAddress(requri).getURI();
+	        
+	        ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
+	        ViaHeader viaHeader = headerFactory.createViaHeader(
+	        			provider.getListeningPoint("udp").getIPAddress(),
+	        			provider.getListeningPoint("udp").getPort(),
+	                    "udp",
+	                    null);
+	        viaHeaders.add(viaHeader);
+
+	        CallIdHeader callIdHeader = provider.getNewCallId();
+	        CSeqHeader cSeqHeader = headerFactory.createCSeqHeader((long)1, Request.INVITE);
+	        MaxForwardsHeader maxForwards = headerFactory.createMaxForwardsHeader(70);
+	        
+	        Request invite = msgFactory.createRequest(
+	                requestURI, Request.INVITE, callIdHeader, cSeqHeader,
+	                fromHeader, toHeader, viaHeaders, maxForwards);
+	        
+	        ContactHeader contactHeader = headerFactory.createContactHeader(contact);
+	        invite.addHeader(contactHeader);
+	        
+	        UserAgentHeader userAgentHeader = headerFactory.createUserAgentHeader(userAgent);
+	        invite.addHeader(userAgentHeader);
+	        
+	        if (balancer != null) {
+	        	Address routeAddr = (Address)balancer.clone();
+	        	((SipURI)routeAddr.getURI()).setLrParam();
+	        	invite.addHeader(headerFactory.createRouteHeader(routeAddr));
+	        }
+	        
+	        ContentTypeHeader cth = headerFactory.createContentTypeHeader("application", "sdp");
+			invite.setContent(sdp.getBytes(), cth);
+	        
+	        ClientTransaction trans = provider.getNewClientTransaction(invite);
+	        trans.sendRequest();
+	        trans.getDialog().setApplicationData(((SIPClientTransaction)trans).getTransactionId());
+	        chan.setTransaction(trans);
+	        log.debug("Sent " + invite);
+	        
+	        return callIdHeader.getCallId();
+	        
+		} catch (ParseException e) {
+			e.printStackTrace();
+		} catch (InvalidArgumentException e) {
+			e.printStackTrace();
+		} catch (SipException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
 	}
 }

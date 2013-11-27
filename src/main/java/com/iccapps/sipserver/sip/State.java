@@ -24,9 +24,11 @@ import java.util.List;
 import java.util.Random;
 
 import javax.sip.ClientTransaction;
+import javax.sip.Dialog;
 import javax.sip.ServerTransaction;
 import javax.sip.SipProvider;
 import javax.sip.address.Address;
+import javax.sip.address.AddressFactory;
 import javax.sip.header.HeaderFactory;
 import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
@@ -42,6 +44,7 @@ public abstract class State {
 	protected SessionImpl chan;
 	
 	protected MessageFactory msgFactory;
+	protected AddressFactory addressFactory;
 	protected HeaderFactory headerFactory;
 	protected ClusteredSipStack stack;
 	protected SipProvider provider;
@@ -56,6 +59,7 @@ public abstract class State {
 		Endpoint ep = ClusterImpl.getInstance().getSipEndpoint();
 		msgFactory = ep.getMessageFactory();
 		headerFactory = ep.getHeaderFactory();
+		addressFactory = ep.getAddressFactory();
 		stack = (ClusteredSipStack)ep.getSipStack();
 		provider = ep.getSipProvider();
 		contact = ep.getContact();
@@ -72,4 +76,50 @@ public abstract class State {
 	protected void message(String text) {};
 	protected void keepalive() {};
 	protected void update() {};
+	
+	protected ServerTransaction getServerTransaction() {
+		ServerTransaction st = (ServerTransaction)chan.getTransaction();
+		if (st == null) {
+			Dialog d = stack.getDialog(chan.getDialogId());
+			if (d != null) {
+				String txId = (String)d.getApplicationData();
+				if (txId == null) {
+					log.warn("No txId on applicationData " + chan.getDialogId());
+					return null;
+				}
+				st = (ServerTransaction)stack.findTransaction(txId, true);		
+				if (st == null) {
+					log.warn("No transaction found with id " + txId + " on "+chan.getDialogId());
+				}
+				
+			} else {
+				log.warn("No dialog available " + chan.getDialogId());
+			}
+		}
+		
+		return st;
+	}
+	
+	protected ClientTransaction getClientTransaction() {
+		ClientTransaction st = (ClientTransaction)chan.getTransaction();
+		if (st == null) {
+			Dialog d = stack.getDialog(chan.getDialogId());
+			if (d != null) {
+				String txId = (String)d.getApplicationData();
+				if (txId == null) {
+					log.warn("No txId on applicationData " + chan.getDialogId());
+					return null;
+				}
+				st = (ClientTransaction)stack.findTransaction(txId, true);		
+				if (st == null) {
+					log.warn("No transaction found with id " + txId + " on "+chan.getDialogId());
+				}
+				
+			} else {
+				log.warn("No dialog available " + chan.getDialogId());
+			}
+		}
+		
+		return st;
+	}
 }

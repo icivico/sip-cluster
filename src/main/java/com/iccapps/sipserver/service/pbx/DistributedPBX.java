@@ -21,7 +21,6 @@
 package com.iccapps.sipserver.service.pbx;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 
@@ -80,7 +79,6 @@ public class DistributedPBX implements Service, Controller {
 		final String dialogId = s.getDialogId();
 		final String sdp = s.getRemoteSDP();
 		String called = s.getDestinationURI();
-		//called = called.substring(called.indexOf(':')+1, called.indexOf('@'));
 		
 		logger.info(caller + " wants to call " + called);
 		
@@ -117,7 +115,41 @@ public class DistributedPBX implements Service, Controller {
 	@Override
 	public void progress(Session chan) {
 		logger.info("Progress " + chan.getDialogId());
-		
+		// search bridge
+		String ref = chan.getReference();
+		if (ref != null) {
+			// call related to another
+			int idx = -1;
+			Bridge b = null;
+			bridgesLock.lock();
+			try {
+				int i = 0;
+				for (Object o : bridges) {
+					b = (Bridge)o;
+					if (b.getOriginationLeg().equals(ref)) {
+						logger.debug("Located bridge " + b);
+						if (b.getDestinationLeg() == null) {
+							// we store this leg if b leg is null
+							b.getInProgressLegs().add(chan.getDialogId());
+							idx = i;
+						} else {
+							// b leg is not null, hangup
+							cluster.doHangup(chan.getDialogId());
+						}
+						break;
+					}
+					i++;
+				}
+				if (b != null) {
+					// update bridge
+					bridges.remove(idx);
+					bridges.add(b);
+					logger.debug("Updated bridge " + b);
+				}
+			} finally {
+				bridgesLock.unlock();
+			}
+		}
 	}
 
 	@Override
@@ -136,8 +168,20 @@ public class DistributedPBX implements Service, Controller {
 					b = (Bridge)o;
 					if (b.getOriginationLeg().equals(ref)) {
 						logger.debug("Located bridge " + b);
-						b.setDestinationLeg(chan.getDialogId());
-						idx = i;
+						if (b.getDestinationLeg() == null) {
+							// set as b leg if is null
+							b.setDestinationLeg(chan.getDialogId());
+							idx = i;
+							// hangup any other legs
+							for (String cid : b.getInProgressLegs()) {
+								if (!cid.equals(chan.getDialogId()))
+									cluster.doHangup(cid);
+							}
+						} else {
+							// hangup 
+							cluster.doHangup(chan.getDialogId());
+						}
+						b.getInProgressLegs().clear();
 						break;
 					}
 					i++;
@@ -163,18 +207,27 @@ public class DistributedPBX implements Service, Controller {
 		try {
 			for (Object o : bridges) {
 				Bridge b = (Bridge)o;
-				if (b.getOriginationLeg().equals(chan.getDialogId()) ||
-						b.getDestinationLeg().equals(chan.getDialogId())) {
-					String otherId = b.getOriginationLeg().equals(chan.getDialogId())?b.getDestinationLeg():b.getOriginationLeg();
+				if (b.getOriginationLeg() != null && b.getDestinationLeg() != null) {
+					if (b.getOriginationLeg().equals(chan.getDialogId()) ||
+							b.getDestinationLeg().equals(chan.getDialogId())) {
+						// bridge connected, hangup the other leg
+						String otherId = b.getOriginationLeg().equals(chan.getDialogId())?b.getDestinationLeg():b.getOriginationLeg();
+						bridges.remove(b);
+						cluster.doHangup(otherId);
+						break;
+					}
+				} else if (b.getOriginationLeg() != null && b.getOriginationLeg().equals(chan.getDialogId())) {
+					// bridge in progress, hangup all in progress legs
+					for (String id : b.getInProgressLegs()) {
+						cluster.doHangup(id);
+					}
+					b.getInProgressLegs().clear();
 					bridges.remove(b);
-					cluster.doHangup(otherId);
-					break;
-				}
+				} 
 			}
 		} finally {
 			bridgesLock.unlock();
 		}
-		
 	}
 
 	@Override
@@ -202,8 +255,8 @@ public class DistributedPBX implements Service, Controller {
 			System.out.println("========== DistributedPBX ===========");
 			for(Object o : bridges) {
 				System.out.println("-------- bridge ----------");
-				System.out.println("a leg: " + ((Bridge)o).getOriginationLeg().substring(0,15) + "...");
-				System.out.println("b leg: " + ((Bridge)o).getDestinationLeg().substring(0,15) + "...");
+				System.out.println("a leg: " + ((Bridge)o).getOriginationLeg().substring(0,7) + "...");
+				System.out.println("b leg: " + ((Bridge)o).getDestinationLeg().substring(0,7) + "...");
 			}
 			System.out.println("======================================");
 		} finally {

@@ -23,16 +23,32 @@ package com.iccapps.sipserver.service.pbx;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class Bridge implements Serializable {
 
 	private static final long serialVersionUID = 568013907730180534L;
 	
+	private String uuid;
+	private String uuidStr;
 	private String originationLeg;
 	private String destinationLeg;
 	
 	private List<String> inProgressLegs = new ArrayList<String>();
 	
+	public Bridge() {
+		uuid = UUID.randomUUID().toString();
+		uuidStr = uuid.substring(0, 5) + "...";
+	}
+	
+	public String getUuid() {
+		return uuid;
+	}
+
+	public void setUuid(String uuid) {
+		this.uuid = uuid;
+	}
+
 	public String getOriginationLeg() {
 		return originationLeg;
 	}
@@ -47,5 +63,9 @@ public class Bridge implements Serializable {
 	}
 	public List<String> getInProgressLegs() {
 		return inProgressLegs;
+	}
+	
+	public String toString() {
+		return uuidStr;
 	}
 }

@@ -297,6 +297,11 @@ public class SessionImpl implements Session {
 	public String getReference() {
 		return data.getReference();
 	}
+	
+	public void setReference(String ref) {
+		data.setReference(ref);
+		replicate();
+	}
 
 	public SessionState getData() {
 		return data;

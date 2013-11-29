@@ -28,6 +28,7 @@ public interface Session {
 	
 	public String getDialogId();
 	public String getReference();
+	public void setReference(String ref);
 	public String getLocalSDP();
 	public String getRemoteSDP();
 	public boolean isCanceled();

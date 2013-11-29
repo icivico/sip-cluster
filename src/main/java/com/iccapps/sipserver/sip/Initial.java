@@ -126,9 +126,11 @@ public class Initial extends State {
 				// connected event
 				chan.fireConnected();
 				
-			} else if ( response.getStatusCode() == Response.FORBIDDEN ) {
-				log.debug("Received 403 on " + chan.getDialogId());
-				sendAck(response);
+			} else if ( response.getStatusCode() == Response.FORBIDDEN ||
+					response.getStatusCode() == Response.BUSY_HERE || 
+					response.getStatusCode() == Response.BUSY_EVERYWHERE) {
+				log.debug("Received " + response.getStatusCode() + " on " + chan.getDialogId());
+				//sendAck(response);
 				chan.fireDisconnected();
 				
 			} else if ( response.getStatusCode() == Response.REQUEST_TERMINATED) {

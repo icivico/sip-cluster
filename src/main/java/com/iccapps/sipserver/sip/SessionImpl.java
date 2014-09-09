@@ -21,26 +21,10 @@
 package com.iccapps.sipserver.sip;
 
 import java.lang.reflect.InvocationTargetException;
-import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.TimerTask;
 
-import javax.sip.ClientTransaction;
-import javax.sip.InvalidArgumentException;
-import javax.sip.SipException;
 import javax.sip.Transaction;
 import javax.sip.address.Address;
-import javax.sip.address.SipURI;
-import javax.sip.header.CSeqHeader;
-import javax.sip.header.CallIdHeader;
-import javax.sip.header.ContactHeader;
-import javax.sip.header.ContentTypeHeader;
-import javax.sip.header.FromHeader;
-import javax.sip.header.MaxForwardsHeader;
-import javax.sip.header.ToHeader;
-import javax.sip.header.UserAgentHeader;
-import javax.sip.header.ViaHeader;
-import javax.sip.message.Request;
 
 import org.apache.log4j.Logger;
 

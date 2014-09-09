@@ -116,7 +116,7 @@ public class Endpoint implements SipListenerExt {
 	
 	private String keepaliveCallid;
 	
-	private class BalancerKeepalive extends TimerTask {
+	private class BalancerHeartbeat extends TimerTask {
 
 		@Override
 		public void run() {
@@ -150,13 +150,12 @@ public class Endpoint implements SipListenerExt {
 		        UserAgentHeader userAgentHeader = headerFactory.createUserAgentHeader(userAgent);
 		        options.addHeader(userAgentHeader);
 		        
-		        Header keepalive = headerFactory.createHeader("X-Balancer", "keepalive");
+		        Header keepalive = headerFactory.createHeader("X-Balancer", "heartbeat");
 		        options.addHeader(keepalive);
 		        
 		        keepaliveCallid = callIdHeader.getCallId();
 		        
 		        ClientTransaction trans = sipProvider.getNewClientTransaction(options);
-		        //logger.debug("ClientTransaction " + trans);
 		        trans.sendRequest();
 		        
 			} catch (ParseException e) {
@@ -257,7 +256,7 @@ public class Endpoint implements SipListenerExt {
 		}
 		
 		if (balancer != null)
-			timer.schedule(new BalancerKeepalive(), 1000);
+			timer.schedule(new BalancerHeartbeat(), 1000);
 	}
 	
 	public void stop() {
@@ -435,7 +434,7 @@ public class Endpoint implements SipListenerExt {
 					if (callid.equals(keepaliveCallid)) {
 						//logger.debug("Balancer contacted, scheduling new keepalive");
 						keepaliveCallid = "";
-						timer.schedule(new BalancerKeepalive(), 1000);
+						timer.schedule(new BalancerHeartbeat(), 1000);
 					}
 				}
 			}
@@ -451,7 +450,7 @@ public class Endpoint implements SipListenerExt {
 			if (callid.equals(keepaliveCallid)) {
 				logger.warn("Re-scheduling balancer keepalive");
 				keepaliveCallid = "";
-				timer.schedule(new BalancerKeepalive(), 100);
+				timer.schedule(new BalancerHeartbeat(), 100);
 			}
 		}
 	}
@@ -514,6 +513,10 @@ public class Endpoint implements SipListenerExt {
             if (callid != null)
             	outbounds.put(callid, s);
         }
+	}
+	
+	private void initiateRegistration() {
+		
 	}
 	
 	public SipStack getSipStack() {

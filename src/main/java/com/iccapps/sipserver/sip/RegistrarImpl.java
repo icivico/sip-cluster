@@ -1,10 +1,7 @@
 package com.iccapps.sipserver.sip;
 
 import gov.nist.javax.sip.clientauthutils.DigestServerAuthenticationHelper;
-import gov.nist.javax.sip.header.From;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -22,14 +19,12 @@ import javax.sip.ServerTransaction;
 import javax.sip.SipException;
 import javax.sip.address.Address;
 import javax.sip.address.SipURI;
-import javax.sip.address.URI;
 import javax.sip.header.CSeqHeader;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
 import javax.sip.header.DateHeader;
 import javax.sip.header.ExpiresHeader;
 import javax.sip.header.FromHeader;
-import javax.sip.header.HeaderFactory;
 import javax.sip.header.MinExpiresHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
@@ -38,8 +33,8 @@ import javax.sip.message.Response;
 import org.apache.log4j.Logger;
 
 import com.iccapps.sipserver.api.Cluster;
-import com.iccapps.sipserver.cluster.hz.ClusterImpl;
 import com.iccapps.sipserver.db.OrientDbRegistrarProvider;
+import com.iccapps.sipserver.db.RegistrarDbProvider;
 import com.iccapps.sipserver.sip.registrar.Binding;
 import com.iccapps.sipserver.sip.registrar.SipUser;
 
@@ -49,13 +44,14 @@ public class RegistrarImpl {
 	private Endpoint ep;
 	private Cluster cluster;
 	private Map<String, Object> registry;
-	private OrientDbRegistrarProvider db;
+	private RegistrarDbProvider db;
 	
 	public RegistrarImpl(Endpoint e, Cluster c, Properties config) throws FileNotFoundException, IOException {
 		ep = e;
 		ep.setRegistrar(this);
 		cluster = c;
 		registry = cluster.createDistributedMap("registrar.registry");
+		// TODO - Registrar db factory
 		db = new OrientDbRegistrarProvider();
 		db.configure(config);
 	}
@@ -113,8 +109,8 @@ public class RegistrarImpl {
 				DigestServerAuthenticationHelper dsam = new DigestServerAuthenticationHelper();
 				if (!dsam.doAuthenticatePlainTextPassword(req, u.getPassword())) {
 	                Response challengeResponse = ep.messageFactory.createResponse(
-	                        Response.UNAUTHORIZED, req);
-	                dsam.generateChallenge(ep.headerFactory, challengeResponse, "nist.gov");
+	                        Response.PROXY_AUTHENTICATION_REQUIRED, req);
+	                dsam.generateChallenge(ep.headerFactory, challengeResponse, domain);
 	                st.sendResponse(challengeResponse);
 	                return;
 	            }

@@ -169,7 +169,7 @@ public class Linked extends State {
 			// hangup with normal code
 			Request request = d.createRequest(Request.OPTIONS);
 			if (ClusterImpl.optionsOnlyToBalancer) {
-				Header keepalive = headerFactory.createHeader("X-Balancer", "keepalive");
+				Header keepalive = headerFactory.createHeader("X-Balancer", "affinity");
 				request.addHeader(keepalive);
 			}
 	        ClientTransaction c = provider.getNewClientTransaction(request);

@@ -87,7 +87,7 @@ public class OnlyCollectDTMF implements Controller {
 						dtmlListener = new DTMFListener();
 						sg.addListener(dtmlListener);
 						Parameters params = mg.createParameters();
-						params.put(SignalDetector.INITIAL_TIMEOUT, 5000);
+						params.put(SignalDetector.INITIAL_TIMEOUT, 15000);
 						params.put(SignalDetector.INTER_SIG_TIMEOUT, 5000);
 						params.put(SignalDetector.MAX_DURATION, 15000);
 						sg.receiveSignals(5, null, null, params);

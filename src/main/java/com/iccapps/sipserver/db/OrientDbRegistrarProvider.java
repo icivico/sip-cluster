@@ -1,9 +1,7 @@
 package com.iccapps.sipserver.db;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import com.google.gson.Gson;
@@ -14,7 +12,7 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 
-public class OrientDbRegistrarProvider {
+public class OrientDbRegistrarProvider implements RegistrarDbProvider {
 	
 	private static final String ORIENTDB_URL = "orientdb.url";
 	private static final String ORIENTDB_USER = "orientdb.username";
@@ -27,12 +25,20 @@ public class OrientDbRegistrarProvider {
 	public OrientDbRegistrarProvider() {
 	}
 	
+	/* (non-Javadoc)
+	 * @see com.iccapps.sipserver.db.RegistrarDbProvider#configure(java.util.Properties)
+	 */
+	@Override
 	public void configure(Properties config) {
 		url = config.getProperty(ORIENTDB_URL, "remote:localhost/registrar");
 		dbuser = config.getProperty(ORIENTDB_USER, "guest");
 		dbpass = config.getProperty(ORIENTDB_PASS, "guest");
 	}
 
+	/* (non-Javadoc)
+	 * @see com.iccapps.sipserver.db.RegistrarDbProvider#isDomainSupported(java.lang.String)
+	 */
+	@Override
 	public boolean isDomainSupported(String domain) {
 		ODatabaseDocumentTx db = ODatabaseDocumentPool.global().acquire(url, dbuser, dbpass);
 		try {
@@ -48,6 +54,10 @@ public class OrientDbRegistrarProvider {
 		return false;
 	}
 	
+	/* (non-Javadoc)
+	 * @see com.iccapps.sipserver.db.RegistrarDbProvider#findSipUser(java.lang.String, java.lang.String)
+	 */
+	@Override
 	public SipUser findSipUser(String user, String domain) {
 		ODatabaseDocumentTx db = ODatabaseDocumentPool.global().acquire(url, dbuser, dbpass);
 		try {
@@ -65,6 +75,10 @@ public class OrientDbRegistrarProvider {
 		return null;
 	}
 	
+	/* (non-Javadoc)
+	 * @see com.iccapps.sipserver.db.RegistrarDbProvider#getBindings(java.lang.String)
+	 */
+	@Override
 	public List<Binding> getBindings(String aor) {
 		List<Binding> bindings = null;
 		ODatabaseDocumentTx db = ODatabaseDocumentPool.global().acquire(url, dbuser, dbpass);
@@ -86,6 +100,10 @@ public class OrientDbRegistrarProvider {
 		return bindings;
 	}
 	
+	/* (non-Javadoc)
+	 * @see com.iccapps.sipserver.db.RegistrarDbProvider#saveBinding(com.iccapps.sipserver.sip.registrar.Binding)
+	 */
+	@Override
 	public void saveBinding(Binding binding) {
 		ODatabaseDocumentTx db = ODatabaseDocumentPool.global().acquire(url, dbuser, dbpass);
 		try {
@@ -99,6 +117,10 @@ public class OrientDbRegistrarProvider {
 		}
 	}
 	
+	/* (non-Javadoc)
+	 * @see com.iccapps.sipserver.db.RegistrarDbProvider#updateBinding(com.iccapps.sipserver.sip.registrar.Binding)
+	 */
+	@Override
 	public void updateBinding(Binding binding) {
 		ODatabaseDocumentTx db = ODatabaseDocumentPool.global().acquire(url, dbuser, dbpass);
 		try {

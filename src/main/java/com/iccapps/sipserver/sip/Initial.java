@@ -35,6 +35,7 @@ import javax.sip.TransactionAlreadyExistsException;
 import javax.sip.TransactionUnavailableException;
 import javax.sip.address.Address;
 import javax.sip.address.SipURI;
+import javax.sip.address.URI;
 import javax.sip.header.CSeqHeader;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
@@ -63,7 +64,12 @@ public class Initial extends State {
 			FromHeader fromHeader = (FromHeader)request.getHeader(FromHeader.NAME);
 			chan.setOriginURI(fromHeader.getAddress().getURI().toString());
 			ToHeader toHeader = (ToHeader)request.getHeader(ToHeader.NAME);
-			chan.setDestinationURI(toHeader.getAddress().getURI().toString());
+			URI toUri = toHeader.getAddress().getURI();
+			String destinationUri = toUri.toString();
+			if (toUri.isSipURI()) 
+				// strip all params
+				destinationUri = "sip:"+((SipURI)toUri).getUser()+"@"+((SipURI)toUri).getHost();	
+			chan.setDestinationURI(destinationUri);
 			chan.setRemoteSDP(new String(request.getRawContent()));
 	        try {
 	        	// send trying

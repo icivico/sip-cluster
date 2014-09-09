@@ -145,7 +145,8 @@ public class WaitAck extends State {
 	        if (tag == null) 
 	        	tag = ""+rnd.nextLong();
 	        ((ToHeader) progressResponse.getHeader(ToHeader.NAME)).setTag(tag);
-	        Header keepalive = headerFactory.createHeader("X-Balancer", "keepalive");
+	        // if dialog is restored in early state, we need to set affinity in a progress response
+	        Header keepalive = headerFactory.createHeader("X-Balancer", "affinity");
 	        progressResponse.addHeader(keepalive);
 	        
 	        // send response

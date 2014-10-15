@@ -27,13 +27,14 @@ import javax.sip.header.ExpiresHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.MinExpiresHeader;
 import javax.sip.header.ToHeader;
+import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
 import org.apache.log4j.Logger;
 
 import com.iccapps.sipserver.api.Cluster;
-import com.iccapps.sipserver.db.OrientDbRegistrarProvider;
+import com.iccapps.sipserver.db.CouchDBRegistrarProvider;
 import com.iccapps.sipserver.db.RegistrarDbProvider;
 import com.iccapps.sipserver.sip.registrar.Binding;
 import com.iccapps.sipserver.sip.registrar.SipUser;
@@ -52,7 +53,8 @@ public class RegistrarImpl {
 		cluster = c;
 		registry = cluster.createDistributedMap("registrar.registry");
 		// TODO - Registrar db factory
-		db = new OrientDbRegistrarProvider();
+		//db = new OrientDbRegistrarProvider();
+		db = new CouchDBRegistrarProvider();
 		db.configure(config);
 	}
 	
@@ -179,9 +181,18 @@ public class RegistrarImpl {
 				/* 7. The registrar now processes each contact address in the Contact
 		         header field in turn.  For each address, it determines the
 		         expiration interval as follows:*/
+				ViaHeader via = null;
+				ListIterator<ViaHeader> vias = req.getHeaders(ViaHeader.NAME);
+				while(vias.hasNext()) 
+					via = vias.next();
+				
 				ListIterator<ContactHeader> itr = (ListIterator<ContactHeader>)req.getHeaders(ContactHeader.NAME); 
 				while(itr.hasNext()) {
 					ct = itr.next();
+					Address ctaddr = ct.getAddress();
+					String received = via.getParameter("received");
+					if (received != null && ctaddr.getURI() instanceof SipURI) 
+						((SipURI)ctaddr.getURI()).setHost(received); 
 					String contactUri = ct.getAddress().toString();
 					
 					/*-  If there is neither, a locally-configured default value MUST

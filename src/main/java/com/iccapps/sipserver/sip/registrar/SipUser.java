@@ -1,9 +1,16 @@
 package com.iccapps.sipserver.sip.registrar;
 
 public class SipUser {
+	private String display;
 	private String username;
 	private String password;
 	private String domain;
+	public String getDisplay() {
+		return display;
+	}
+	public void setDisplay(String display) {
+		this.display = display;
+	}
 	public String getUsername() {
 		return username;
 	}
